@@ -275,6 +275,7 @@ export default function Webcam({
           
           <canvas 
             ref={canvasRef}
+            id="previewCanvas"
             className={`absolute inset-0 pixelate-canvas ${showPlaceholder ? 'hidden' : ''}`}
             style={{ imageRendering: 'pixelated' }}
           />
@@ -286,7 +287,7 @@ export default function Webcam({
           <Button
             className="flex items-center space-x-1 bg-app-blue hover:bg-blue-600"
             onClick={captureImage}
-            disabled={!isCameraActive}
+            disabled={!isCameraActive && showPlaceholder}
           >
             <Image className="h-5 w-5" />
             <span>Capture</span>
@@ -305,7 +306,13 @@ export default function Webcam({
         <div className="flex items-center space-x-2">
           <Button
             className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600"
-            onClick={async () => await switchCamera()}
+            onClick={async () => {
+              try {
+                await switchCamera();
+              } catch (error) {
+                console.error("Error switching camera:", error);
+              }
+            }}
             disabled={!isCameraActive || availableCameras.length <= 1}
           >
             <RefreshCw className="h-5 w-5" />
