@@ -65,10 +65,7 @@ export default function Webcam({
         processFrame(
           videoRef.current,
           canvasRef.current,
-          filterSettings.dotSize,
-          filterSettings.contrast,
-          filterSettings.brightness,
-          filterSettings.isGrayscale,
+          filterSettings,
           isBackCamera
         );
       }

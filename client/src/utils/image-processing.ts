@@ -10,10 +10,18 @@ export function processFrame(
   filterSettings: FilterSettings,
   isBackCamera?: boolean
 ): void {
-  const { dotSize, contrast, brightness, isGrayscale, dotShape, useSecondLayer, secondLayerOpacity, secondLayerOffset } = filterSettings;
   // Safety check inputs
   if (!video || !canvas) return;
-  if (dotSize <= 0) dotSize = 5; // Default to 5 if invalid
+  
+  // Extract settings with defaults for any missing or invalid values
+  const dotSize = filterSettings.dotSize <= 0 ? 5 : filterSettings.dotSize;
+  const contrast = filterSettings.contrast;
+  const brightness = filterSettings.brightness;
+  const isGrayscale = filterSettings.isGrayscale;
+  const dotShape = filterSettings.dotShape || 'circle';
+  const useSecondLayer = filterSettings.useSecondLayer ?? true;
+  const secondLayerOpacity = filterSettings.secondLayerOpacity ?? 0.5;
+  const secondLayerOffset = filterSettings.secondLayerOffset ?? 3;
   
   // Get canvas context
   const ctx = canvas.getContext('2d');
