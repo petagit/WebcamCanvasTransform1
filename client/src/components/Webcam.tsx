@@ -134,8 +134,13 @@ export default function Webcam({
   const captureImage = () => {
     if (!canvasRef.current) return;
     
-    const dataUrl = canvasRef.current.toDataURL("image/jpeg");
-    onCaptureImage(dataUrl);
+    try {
+      const dataUrl = canvasRef.current.toDataURL("image/jpeg");
+      onCaptureImage(dataUrl);
+    } catch (error) {
+      console.error("Error capturing image:", error);
+      setCameraError("Error capturing image. Please try again.");
+    }
   };
 
   // Toggle recording
@@ -238,18 +243,41 @@ export default function Webcam({
                       if (target.files && target.files[0]) {
                         const file = target.files[0];
                         const url = URL.createObjectURL(file);
-                        const img = new Image();
+                        const img = new Image() as HTMLImageElement;
                         img.onload = () => {
                           // Create a canvas with the image
-                          if (canvasRef.current) {
-                            const ctx = canvasRef.current.getContext('2d');
-                            if (ctx) {
-                              canvasRef.current.width = img.width;
-                              canvasRef.current.height = img.height;
-                              ctx.drawImage(img, 0, 0);
-                              setShowPlaceholder(false);
-                              onCameraReady();
+                          try {
+                            if (canvasRef.current) {
+                              const ctx = canvasRef.current.getContext('2d');
+                              if (ctx) {
+                                // Set reasonable dimensions
+                                const MAX_WIDTH = 1280;
+                                const MAX_HEIGHT = 720;
+                                let width = img.width;
+                                let height = img.height;
+                                
+                                // Calculate new dimensions while preserving aspect ratio
+                                if (width > MAX_WIDTH) {
+                                  const ratio = MAX_WIDTH / width;
+                                  width = MAX_WIDTH;
+                                  height = height * ratio;
+                                }
+                                if (height > MAX_HEIGHT) {
+                                  const ratio = MAX_HEIGHT / height;
+                                  height = MAX_HEIGHT;
+                                  width = width * ratio;
+                                }
+                                
+                                canvasRef.current.width = width;
+                                canvasRef.current.height = height;
+                                ctx.drawImage(img, 0, 0, width, height);
+                                setShowPlaceholder(false);
+                                onCameraReady();
+                              }
                             }
+                          } catch (error) {
+                            console.error("Error processing uploaded image:", error);
+                            setCameraError("Error processing image. Please try another image.");
                           }
                         };
                         img.src = url;
@@ -287,7 +315,7 @@ export default function Webcam({
           <Button
             className="flex items-center space-x-1 bg-app-blue hover:bg-blue-600"
             onClick={captureImage}
-            disabled={!isCameraActive && showPlaceholder}
+            disabled={showPlaceholder}
           >
             <Image className="h-5 w-5" />
             <span>Capture</span>

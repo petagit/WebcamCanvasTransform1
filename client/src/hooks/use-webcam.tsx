@@ -162,7 +162,9 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
     
     // Find index of current camera
     const currentIndex = cameras.findIndex(cam => cam.deviceId === currentDeviceId);
-    const nextIndex = (currentIndex + 1) % cameras.length;
+    // Ensure we have a valid current index, default to 0 if not found (-1)
+    const validCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+    const nextIndex = (validCurrentIndex + 1) % cameras.length;
     
     // Stop current camera
     stopCamera();
