@@ -1,10 +1,10 @@
 /**
- * Process a video frame with pixelation and other effects
+ * Process a video frame with dot matrix/halftone and other effects
  */
 export function processFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
-  pixelSize: number,
+  dotSize: number,
   contrast: number,
   brightness: number,
   isGrayscale: boolean
@@ -18,28 +18,18 @@ export function processFrame(
     canvas.height = video.videoHeight;
   }
   
-  // Calculate pixel scaling factor
-  const scaleFactor = 1 / pixelSize;
+  // Clear the canvas and set background to black
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Draw the original video to get pixel data
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   
-  // Draw at lower resolution (for pixelation)
-  ctx.save();
-  ctx.scale(scaleFactor, scaleFactor);
-  ctx.drawImage(
-    video, 
-    0, 
-    0, 
-    canvas.width * scaleFactor, 
-    canvas.height * scaleFactor
-  );
-  ctx.restore();
-  
-  // Apply filter effects (contrast, brightness, grayscale)
+  // Get image data to process
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   
+  // Apply contrast and brightness adjustments
   for (let i = 0; i < data.length; i += 4) {
     // Apply brightness
     data[i] *= brightness;     // R
@@ -61,34 +51,65 @@ export function processFrame(
     }
   }
   
-  ctx.putImageData(imageData, 0, 0);
-  
-  // Scale it back up for the blocky pixel effect
+  // Create a blank canvas for dot matrix effect
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = canvas.width;
   tempCanvas.height = canvas.height;
-  const tempCtx = tempCanvas.getContext('2d');
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
   
-  if (tempCtx) {
-    // Disable smoothing for pixelated look
-    tempCtx.imageSmoothingEnabled = false;
-    
-    // Draw the pixelated image back to the temporary canvas
-    tempCtx.drawImage(
-      canvas, 
-      0, 
-      0, 
-      canvas.width * scaleFactor, 
-      canvas.height * scaleFactor, 
-      0, 
-      0, 
-      canvas.width, 
-      canvas.height
-    );
-    
-    // Draw the final image back to the original canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(tempCanvas, 0, 0);
+  if (!tempCtx) return;
+  
+  // Set background to black
+  tempCtx.fillStyle = 'black';
+  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  
+  // Put the processed image data on the temp canvas
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  // Clear the original canvas for the dot matrix effect
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Set dot properties
+  ctx.fillStyle = 'white';
+  
+  // Calculate grid based on dot size
+  const gridSize = Math.max(2, Math.floor(dotSize));
+  
+  // Draw the dot matrix pattern
+  for (let y = 0; y < canvas.height; y += gridSize) {
+    for (let x = 0; x < canvas.width; x += gridSize) {
+      try {
+        // Sample the pixel at this grid point
+        const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
+        
+        // Calculate brightness (0-255)
+        let brightness = isGrayscale 
+          ? pixelData[0] // For grayscale, just use one channel
+          : (pixelData[0] + pixelData[1] + pixelData[2]) / 3;
+          
+        // Calculate dot radius based on brightness (brighter = larger dot)
+        const maxRadius = gridSize / 2 * 0.95; // Maximum radius slightly less than half grid size
+        const radius = (brightness / 255) * maxRadius;
+        
+        // Only draw dots above a certain brightness threshold
+        if (radius > 0.5) {
+          ctx.beginPath();
+          ctx.arc(
+            x + gridSize / 2, // center x
+            y + gridSize / 2, // center y
+            radius, // radius
+            0, // start angle
+            Math.PI * 2 // end angle (full circle)
+          );
+          ctx.fill();
+        }
+      } catch (e) {
+        // Skip this dot if there's an error sampling the pixel
+        console.error('Error sampling pixel:', e);
+      }
+    }
   }
 }
 

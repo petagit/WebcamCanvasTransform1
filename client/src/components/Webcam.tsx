@@ -107,14 +107,38 @@ export default function Webcam({
     }
   }, [isCameraActive, onCameraReady]);
 
-  // Handle fullscreen
+  // Handle fullscreen with mobile compatibility
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement && containerRef.current) {
-      containerRef.current.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen();
+    try {
+      if (!document.fullscreenElement && containerRef.current) {
+        // Try standard Fullscreen API first
+        if (containerRef.current.requestFullscreen) {
+          containerRef.current.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          });
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          // Safari/iOS support
+          (containerRef.current as any).webkitRequestFullscreen();
+        } else {
+          // If fullscreen isn't supported, we'll simulate it with CSS
+          setIsFullscreen(!isFullscreen);
+        }
+      } else if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else {
+          setIsFullscreen(false);
+        }
+      } else {
+        // Toggle our CSS-based fullscreen state
+        setIsFullscreen(!isFullscreen);
+      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
+      // Fallback to CSS-based fullscreen
+      setIsFullscreen(!isFullscreen);
     }
   };
 
@@ -204,7 +228,14 @@ export default function Webcam({
         </div>
       </div>
       
-      <div ref={containerRef} className="relative flex justify-center items-center bg-black min-h-[400px]">
+      <div 
+        ref={containerRef} 
+        className={`relative flex justify-center items-center bg-black min-h-[400px] ${
+          isFullscreen && !document.fullscreenElement 
+            ? 'fixed inset-0 z-50 min-h-screen w-screen' 
+            : ''
+        }`}
+      >
         <div className="relative w-full h-full flex justify-center items-center">
           {showPlaceholder ? (
             <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
@@ -243,7 +274,7 @@ export default function Webcam({
                       if (target.files && target.files[0]) {
                         const file = target.files[0];
                         const url = URL.createObjectURL(file);
-                        const img = new Image() as HTMLImageElement;
+                        const img = new Image();
                         img.onload = () => {
                           // Create a canvas with the image
                           try {
