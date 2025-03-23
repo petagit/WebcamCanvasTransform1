@@ -211,17 +211,17 @@ export default function Webcam({
   return (
     <div className="bg-app-dark-light rounded-xl overflow-hidden shadow-xl">
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Preview</h2>
+        <h2 className="text-lg font-semibold text-white">Preview</h2>
         <div className="flex space-x-2">
           {isRecording && (
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse mr-1"></div>
-              <span className="text-red-500 text-sm">REC</span>
+              <span className="text-red-500 text-sm font-bold">REC</span>
             </div>
           )}
           <button 
             onClick={toggleFullscreen}
-            className="text-gray-400 hover:text-white"
+            className="text-white hover:text-blue-400"
           >
             <Maximize className="h-5 w-5" />
           </button>
@@ -243,8 +243,8 @@ export default function Webcam({
               
               {cameraError ? (
                 <>
-                  <div className="text-red-500 mb-4">{cameraError}</div>
-                  <div className="text-gray-400 text-sm mb-4">
+                  <div className="text-red-500 font-medium mb-4">{cameraError}</div>
+                  <div className="text-white text-sm mb-4">
                     On mobile devices, you may need to use your device settings to allow camera access,
                     or try using a different browser.
                   </div>

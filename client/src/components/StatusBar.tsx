@@ -46,7 +46,7 @@ export default function StatusBar({
                 : "bg-gray-500"
           }`}
         ></div>
-        <span>
+        <span className="text-white font-medium">
           {isStreaming 
             ? "Recording in progress" 
             : cameraReady 
@@ -55,7 +55,7 @@ export default function StatusBar({
           }
         </span>
       </div>
-      <div className="text-foreground">{time}</div>
+      <div className="text-white font-mono">{time}</div>
     </div>
   );
 }
