@@ -239,7 +239,7 @@ export default function Webcam({
             : ''
         }`}
       >
-        <div className="relative w-full h-full flex justify-center items-center">
+        <div className="relative w-full h-full" style={{ minHeight: '400px', overflow: 'hidden' }}>
           {showPlaceholder ? (
             <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
               <Camera className="h-20 w-20 text-gray-600 mb-4" />
@@ -327,20 +327,32 @@ export default function Webcam({
             </div>
           ) : null}
           
-          <video 
-            ref={videoRef}
-            className={`max-w-full max-h-[500px] ${showPlaceholder ? 'hidden' : ''}`}
-            autoPlay
-            playsInline
-            muted
-          />
+          {/* Container for video (hidden but used as source) */}
+          <div className="hidden">
+            <video 
+              ref={videoRef}
+              className={showPlaceholder ? 'hidden' : ''}
+              autoPlay
+              playsInline
+              muted
+            />
+          </div>
           
-          <canvas 
-            ref={canvasRef}
-            id="previewCanvas"
-            className={`absolute inset-0 pixelate-canvas ${showPlaceholder ? 'hidden' : ''}`}
-            style={{ imageRendering: 'pixelated' }}
-          />
+          {/* Canvas container with proper centering */}
+          <div id="canvas-container" className="w-full h-full flex justify-center items-center">
+            <canvas 
+              ref={canvasRef}
+              id="previewCanvas"
+              className={`pixelate-canvas ${showPlaceholder ? 'hidden' : ''}`}
+              style={{ 
+                imageRendering: 'pixelated',
+                backgroundColor: 'black',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
         </div>
       </div>
       

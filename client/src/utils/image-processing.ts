@@ -47,30 +47,38 @@ export function processFrame(
     // Check if we need to adjust for portrait mode on mobile
     const isPortrait = isMobile && window.innerHeight > window.innerWidth;
     
-    // Ensure canvas dimensions match video (with reasonable limits)
-    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
-      const MAX_WIDTH = 1920;
-      const MAX_HEIGHT = 1080;
+    // Ensure canvas dimensions match the container while maintaining aspect ratio
+    const containerWidth = canvas.parentElement?.clientWidth || window.innerWidth;
+    const containerHeight = canvas.parentElement?.clientHeight || window.innerHeight * 0.6;
+    
+    // Always maintain aspect ratio of the video
+    const videoAspectRatio = videoWidth / videoHeight;
+    
+    // Determine if we should fit to width or height based on container and video dimensions
+    let canvasWidth = containerWidth;
+    let canvasHeight = containerWidth / videoAspectRatio;
+    
+    // If calculated height is too tall for container, fit to height instead
+    if (canvasHeight > containerHeight) {
+      canvasHeight = containerHeight;
+      canvasWidth = containerHeight * videoAspectRatio;
+    }
+    
+    // Apply the calculated dimensions with some reasonable limits
+    const MAX_WIDTH = 1920;
+    const MAX_HEIGHT = 1080;
+    
+    canvas.width = Math.min(canvasWidth, MAX_WIDTH);
+    canvas.height = Math.min(canvasHeight, MAX_HEIGHT);
+    
+    // Ensure the canvas is centered in its container
+    if (canvas.parentElement) {
+      const horizontalCenter = (containerWidth - canvas.width) / 2;
+      const verticalCenter = (containerHeight - canvas.height) / 2;
       
-      // For mobile in portrait mode, we might want to apply different size constraints
-      if (isPortrait) {
-        // Maintain aspect ratio but ensure the canvas fits well in portrait view
-        const aspectRatio = videoWidth / videoHeight;
-        
-        if (videoWidth > videoHeight) {
-          // Landscape video in portrait view
-          canvas.height = Math.min(window.innerHeight * 0.5, MAX_HEIGHT);
-          canvas.width = canvas.height * aspectRatio;
-        } else {
-          // Portrait video in portrait view
-          canvas.width = Math.min(window.innerWidth * 0.9, MAX_WIDTH);
-          canvas.height = canvas.width / aspectRatio;
-        }
-      } else {
-        // Standard sizing for landscape or desktop view
-        canvas.width = Math.min(videoWidth, MAX_WIDTH);
-        canvas.height = Math.min(videoHeight, MAX_HEIGHT);
-      }
+      // Apply centering through CSS transform
+      canvas.style.position = 'absolute';
+      canvas.style.transform = `translate(${horizontalCenter}px, ${verticalCenter}px)`;
     }
     
     // Clear the canvas
@@ -88,7 +96,30 @@ export function processFrame(
     }
     
     // Draw the original video to get pixel data
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Calculate how to fit the video while preserving aspect ratio
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const canvasRatio = canvas.width / canvas.height;
+    
+    let drawWidth = canvas.width;
+    let drawHeight = canvas.height;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    // If the video and canvas have different aspect ratios, we need to adjust
+    if (videoRatio > canvasRatio) {
+        // Video is wider than canvas - fit to height
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * videoRatio;
+        offsetX = (canvas.width - drawWidth) / 2;
+    } else {
+        // Video is taller than canvas - fit to width
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / videoRatio;
+        offsetY = (canvas.height - drawHeight) / 2;
+    }
+    
+    // Draw video centered in canvas
+    ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
     
     // Restore context to remove transformations before further processing
     ctx.restore();
