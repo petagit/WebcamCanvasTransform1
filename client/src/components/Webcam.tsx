@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
 import { processFrame } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
-import { Camera, Maximize, Video, Image, RefreshCw } from "lucide-react";
+import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { FilterSettings } from "@/pages/Home";
 
 interface WebcamProps {
@@ -28,6 +29,7 @@ export default function Webcam({
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   
   const {
     stream,
@@ -82,7 +84,7 @@ export default function Webcam({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isCameraActive, filterSettings]);
+  }, [isCameraActive, filterSettings, isBackCamera]);
 
   // Set up recording timer
   useEffect(() => {
@@ -367,20 +369,39 @@ export default function Webcam({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button
-            className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600"
-            onClick={async () => {
-              try {
-                await switchCamera();
-              } catch (error) {
-                console.error("Error switching camera:", error);
-              }
-            }}
-            disabled={!isCameraActive || availableCameras.length <= 1}
-          >
-            <RefreshCw className="h-5 w-5" />
-            <span>Switch Source</span>
-          </Button>
+          {isMobile ? (
+            // For mobile devices, show a toggle for front/back camera
+            <Button
+              className={`flex items-center space-x-1 ${isBackCamera ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-cyan-600 hover:bg-cyan-700'}`}
+              onClick={async () => {
+                try {
+                  await toggleFacingMode();
+                } catch (error) {
+                  console.error("Error toggling camera:", error);
+                }
+              }}
+              disabled={!isCameraActive}
+            >
+              <FlipHorizontal className="h-5 w-5" />
+              <span>{isBackCamera ? 'Front Camera' : 'Back Camera'}</span>
+            </Button>
+          ) : (
+            // For desktop devices, show device switching button
+            <Button
+              className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600"
+              onClick={async () => {
+                try {
+                  await switchCamera();
+                } catch (error) {
+                  console.error("Error switching camera:", error);
+                }
+              }}
+              disabled={!isCameraActive || availableCameras.length <= 1}
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>Switch Source</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>
