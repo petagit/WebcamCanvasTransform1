@@ -26,8 +26,8 @@ export default function ControlPanel({
   const [isWebcamSource, setIsWebcamSource] = useState(true);
   const { stopCamera } = useWebcam();
   
-  const handlePixelSizeChange = (value: number[]) => {
-    setFilterSettings(prev => ({ ...prev, pixelSize: value[0] }));
+  const handleDotSizeChange = (value: number[]) => {
+    setFilterSettings(prev => ({ ...prev, dotSize: value[0] }));
   };
   
   const handleContrastChange = (value: number[]) => {
@@ -96,17 +96,17 @@ export default function ControlPanel({
           <h2 className="text-lg font-semibold">Filter Settings</h2>
         </div>
         <div className="p-4 space-y-4">
-          {/* Pixel Size */}
+          {/* Dot Size */}
           <div>
             <div className="flex justify-between">
-              <Label className="text-sm font-medium text-gray-400">Pixel Size</Label>
-              <span className="text-sm text-gray-400">{filterSettings.pixelSize}</span>
+              <Label className="text-sm font-medium text-gray-400">Dot Size</Label>
+              <span className="text-sm text-gray-400">{filterSettings.dotSize}</span>
             </div>
             <Slider 
-              value={[filterSettings.pixelSize]} 
-              onValueChange={handlePixelSizeChange}
+              value={[filterSettings.dotSize]} 
+              onValueChange={handleDotSizeChange}
               min={1}
-              max={50}
+              max={30}
               step={1}
               className="mt-2"
             />

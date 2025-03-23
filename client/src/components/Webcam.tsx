@@ -60,7 +60,7 @@ export default function Webcam({
         processFrame(
           videoRef.current,
           canvasRef.current,
-          filterSettings.pixelSize,
+          filterSettings.dotSize,
           filterSettings.contrast,
           filterSettings.brightness,
           filterSettings.isGrayscale
@@ -274,7 +274,7 @@ export default function Webcam({
                       if (target.files && target.files[0]) {
                         const file = target.files[0];
                         const url = URL.createObjectURL(file);
-                        const img = new Image();
+                        const img = document.createElement('img');
                         img.onload = () => {
                           // Create a canvas with the image
                           try {

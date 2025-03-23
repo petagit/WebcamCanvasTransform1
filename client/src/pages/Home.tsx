@@ -16,7 +16,7 @@ export type CapturedItem = {
 };
 
 export type FilterSettings = {
-  pixelSize: number;
+  dotSize: number; // Changed from pixelSize to dotSize
   contrast: number;
   brightness: number;
   isGrayscale: boolean;
@@ -30,7 +30,7 @@ export default function Home() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
-    pixelSize: 10,
+    dotSize: 10,
     contrast: 1.5,
     brightness: 1.0,
     isGrayscale: true,
