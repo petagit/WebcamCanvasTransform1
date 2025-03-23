@@ -15,11 +15,17 @@ export type CapturedItem = {
   timestamp: Date;
 };
 
+export type DotShape = 'circle' | 'square' | 'cross';
+
 export type FilterSettings = {
-  dotSize: number; // Changed from pixelSize to dotSize
+  dotSize: number; // Size of primary halftone dots
   contrast: number;
   brightness: number;
   isGrayscale: boolean;
+  dotShape: DotShape;  // Shape of the primary dots
+  useSecondLayer: boolean; // Whether to use a second layer of halftones
+  secondLayerOpacity: number; // Opacity of the second layer (0.0 to 1.0)
+  secondLayerOffset: number; // Offset of second layer for a more dynamic look
 };
 
 export default function Home() {
@@ -34,6 +40,10 @@ export default function Home() {
     contrast: 1.5,
     brightness: 1.0,
     isGrayscale: true,
+    dotShape: 'circle', // Default shape
+    useSecondLayer: true, // Enable second layer by default
+    secondLayerOpacity: 0.5, // 50% opacity for second layer
+    secondLayerOffset: 5, // Offset for second layer
   });
   const { toast } = useToast();
 

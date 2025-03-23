@@ -1,3 +1,5 @@
+import type { DotShape, FilterSettings } from "@/pages/Home";
+
 /**
  * Process a video frame with dot matrix/halftone and other effects
  * Improved with extensive error handling for mobile compatibility and orientation
@@ -5,12 +7,10 @@
 export function processFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
-  dotSize: number,
-  contrast: number,
-  brightness: number,
-  isGrayscale: boolean,
+  filterSettings: FilterSettings,
   isBackCamera?: boolean
 ): void {
+  const { dotSize, contrast, brightness, isGrayscale, dotShape, useSecondLayer, secondLayerOpacity, secondLayerOffset } = filterSettings;
   // Safety check inputs
   if (!video || !canvas) return;
   if (dotSize <= 0) dotSize = 5; // Default to 5 if invalid
@@ -148,7 +148,7 @@ export function processFrame(
     const maxGridX = Math.min(500, Math.floor(canvas.width / gridSize)); 
     const maxGridY = Math.min(500, Math.floor(canvas.height / gridSize));
     
-    // Draw dot matrix pattern
+    // Draw dot matrix pattern for primary layer
     for (let yi = 0; yi < maxGridY; yi++) {
       const y = yi * gridSize;
       
@@ -160,10 +160,9 @@ export function processFrame(
           continue;
         }
         
-        let pixelData;
         try {
           // Get pixel data safely
-          pixelData = tempCtx.getImageData(x, y, 1, 1).data;
+          const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
           
           // Calculate brightness
           const brightness = isGrayscale 
@@ -178,18 +177,107 @@ export function processFrame(
           const centerX = x + gridSize / 2;
           const centerY = y + gridSize / 2;
           
-          // Draw the dot
-          if (radius > 0 && 
-              centerX >= radius && centerY >= radius && 
-              centerX + radius < canvas.width && centerY + radius < canvas.height) {
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.fill();
+          // Ensure the dot is within canvas bounds
+          if (radius <= 0 || 
+              centerX < radius || centerY < radius || 
+              centerX + radius >= canvas.width || centerY + radius >= canvas.height) {
+            continue;
           }
+          
+          // Draw the dot based on selected shape
+          ctx.beginPath();
+          
+          switch (dotShape) {
+            case 'square':
+              // Draw square
+              const size = radius * 1.8; // Adjust size for better visual balance compared to circle
+              ctx.rect(centerX - size/2, centerY - size/2, size, size);
+              break;
+              
+            case 'cross':
+              // Draw cross
+              const thickness = radius * 0.6;
+              const length = radius * 1.8;
+              
+              // Horizontal line
+              ctx.rect(centerX - length/2, centerY - thickness/2, length, thickness);
+              
+              // Vertical line
+              ctx.rect(centerX - thickness/2, centerY - length/2, thickness, length);
+              break;
+              
+            case 'circle':
+            default:
+              // Draw circle (default)
+              ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+              break;
+          }
+          
+          ctx.fill();
+          
         } catch (e) {
           // Skip silently on error
         }
       }
+    }
+    
+    // Draw second layer if enabled
+    if (useSecondLayer) {
+      // Apply a slight offset to create more dynamic range
+      const offset = secondLayerOffset || 3;
+      
+      // Set opacity for second layer
+      ctx.globalAlpha = secondLayerOpacity;
+      
+      // Draw second layer with smaller dots and offset
+      for (let yi = 0; yi < maxGridY; yi++) {
+        const y = yi * gridSize + offset;
+        
+        for (let xi = 0; xi < maxGridX; xi++) {
+          const x = xi * gridSize + offset;
+          
+          // Skip invalid coordinates
+          if (x < 0 || y < 0 || x >= tempCanvas.width || y >= tempCanvas.height) {
+            continue;
+          }
+          
+          try {
+            // Get pixel data safely
+            const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
+            
+            // Calculate brightness - invert for second layer to create contrast
+            const brightness = isGrayscale 
+              ? 255 - pixelData[0]
+              : 255 - ((pixelData[0] + pixelData[1] + pixelData[2]) / 3);
+            
+            // Second layer gets smaller dots
+            const maxRadius = Math.max(1, (gridSize / 3) * 0.8);
+            const radius = Math.max(0.3, Math.min(maxRadius, (brightness / 255) * maxRadius));
+            
+            // Calculate position with safety margins
+            const centerX = x + gridSize / 2;
+            const centerY = y + gridSize / 2;
+            
+            // Ensure the dot is within canvas bounds
+            if (radius <= 0 || 
+                centerX < radius || centerY < radius || 
+                centerX + radius >= canvas.width || centerY + radius >= canvas.height) {
+              continue;
+            }
+            
+            // Always use circles for second layer for better overlap
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+          } catch (e) {
+            // Skip silently on error
+          }
+        }
+      }
+      
+      // Reset opacity for future drawing
+      ctx.globalAlpha = 1.0;
     }
   } catch (error) {
     // On any failure, show a black screen

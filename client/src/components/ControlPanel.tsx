@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, Image, Video } from "lucide-react";
+import { Upload, Download, Image, Video, Circle, Square, X, Layers } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import ActivityFeed from "./ActivityFeed";
 import { useWebcam } from "@/hooks/use-webcam";
 import { downloadAsJpg } from "@/utils/file-utils";
-import type { FilterSettings, CapturedItem } from "@/pages/Home";
+import type { FilterSettings, CapturedItem, DotShape } from "@/pages/Home";
 
 interface ControlPanelProps {
   filterSettings: FilterSettings;
@@ -47,6 +50,22 @@ export default function ControlPanel({
   
   const toggleFilterType = (isGrayscale: boolean) => {
     setFilterSettings(prev => ({ ...prev, isGrayscale }));
+  };
+  
+  const handleDotShapeChange = (value: DotShape) => {
+    setFilterSettings(prev => ({ ...prev, dotShape: value }));
+  };
+  
+  const toggleSecondLayer = (enabled: boolean) => {
+    setFilterSettings(prev => ({ ...prev, useSecondLayer: enabled }));
+  };
+  
+  const handleSecondLayerOpacityChange = (value: number[]) => {
+    setFilterSettings(prev => ({ ...prev, secondLayerOpacity: value[0] }));
+  };
+  
+  const handleSecondLayerOffsetChange = (value: number[]) => {
+    setFilterSettings(prev => ({ ...prev, secondLayerOffset: value[0] }));
   };
   
   return (
@@ -142,6 +161,90 @@ export default function ControlPanel({
               step={0.1}
               className="mt-2"
             />
+          </div>
+          
+          {/* Dot Shape Selection */}
+          <div className="mt-4">
+            <Label className="block text-label mb-2">Dot Shape</Label>
+            <RadioGroup
+              value={filterSettings.dotShape}
+              onValueChange={(value) => handleDotShapeChange(value as DotShape)}
+              className="grid grid-cols-3 gap-2"
+            >
+              <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
+                <RadioGroupItem id="option-circle" value="circle" className="sr-only" />
+                <Label htmlFor="option-circle" className="flex flex-col items-center cursor-pointer w-full">
+                  <Circle className={`h-6 w-6 ${filterSettings.dotShape === 'circle' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <span className="text-xs mt-1">Circle</span>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
+                <RadioGroupItem id="option-square" value="square" className="sr-only" />
+                <Label htmlFor="option-square" className="flex flex-col items-center cursor-pointer w-full">
+                  <Square className={`h-6 w-6 ${filterSettings.dotShape === 'square' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <span className="text-xs mt-1">Square</span>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
+                <RadioGroupItem id="option-cross" value="cross" className="sr-only" />
+                <Label htmlFor="option-cross" className="flex flex-col items-center cursor-pointer w-full">
+                  <X className={`h-6 w-6 ${filterSettings.dotShape === 'cross' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <span className="text-xs mt-1">Cross</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Second Layer Controls */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Layers className="h-4 w-4 text-gray-400" />
+                <Label className="text-label">Second Layer</Label>
+              </div>
+              <Switch 
+                checked={filterSettings.useSecondLayer} 
+                onCheckedChange={toggleSecondLayer}
+              />
+            </div>
+            
+            {filterSettings.useSecondLayer && (
+              <div className="mt-3 space-y-3 pl-1 border-l-2 border-gray-700 ml-1">
+                {/* Second Layer Opacity */}
+                <div>
+                  <div className="flex justify-between">
+                    <Label className="text-label text-sm">Opacity</Label>
+                    <span className="text-value text-sm">{(filterSettings.secondLayerOpacity * 100).toFixed(0)}%</span>
+                  </div>
+                  <Slider 
+                    value={[filterSettings.secondLayerOpacity]} 
+                    onValueChange={handleSecondLayerOpacityChange}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    className="mt-1"
+                  />
+                </div>
+                
+                {/* Second Layer Offset */}
+                <div>
+                  <div className="flex justify-between">
+                    <Label className="text-label text-sm">Offset</Label>
+                    <span className="text-value text-sm">{filterSettings.secondLayerOffset}</span>
+                  </div>
+                  <Slider 
+                    value={[filterSettings.secondLayerOffset]} 
+                    onValueChange={handleSecondLayerOffsetChange}
+                    min={1}
+                    max={15}
+                    step={1}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Filter Type */}
