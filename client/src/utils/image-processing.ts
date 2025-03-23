@@ -47,39 +47,22 @@ export function processFrame(
     // Check if we need to adjust for portrait mode on mobile
     const isPortrait = isMobile && window.innerHeight > window.innerWidth;
     
-    // Ensure canvas dimensions match the container while maintaining aspect ratio
-    const containerWidth = canvas.parentElement?.clientWidth || window.innerWidth;
-    const containerHeight = canvas.parentElement?.clientHeight || window.innerHeight * 0.6;
+    // Set fixed dimensions for canvas based on container
+    const canvasContainer = document.getElementById('canvas-container');
+    const containerWidth = canvasContainer?.clientWidth || window.innerWidth;
+    const containerHeight = canvasContainer?.clientHeight || window.innerHeight * 0.6;
     
-    // Always maintain aspect ratio of the video
-    const videoAspectRatio = videoWidth / videoHeight;
+    // Reset any previous transformations
+    canvas.style.transform = '';
     
-    // Determine if we should fit to width or height based on container and video dimensions
-    let canvasWidth = containerWidth;
-    let canvasHeight = containerWidth / videoAspectRatio;
+    // Set canvas to match container size exactly
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
     
-    // If calculated height is too tall for container, fit to height instead
-    if (canvasHeight > containerHeight) {
-      canvasHeight = containerHeight;
-      canvasWidth = containerHeight * videoAspectRatio;
-    }
-    
-    // Apply the calculated dimensions with some reasonable limits
-    const MAX_WIDTH = 1920;
-    const MAX_HEIGHT = 1080;
-    
-    canvas.width = Math.min(canvasWidth, MAX_WIDTH);
-    canvas.height = Math.min(canvasHeight, MAX_HEIGHT);
-    
-    // Ensure the canvas is centered in its container
-    if (canvas.parentElement) {
-      const horizontalCenter = (containerWidth - canvas.width) / 2;
-      const verticalCenter = (containerHeight - canvas.height) / 2;
-      
-      // Apply centering through CSS transform
-      canvas.style.position = 'absolute';
-      canvas.style.transform = `translate(${horizontalCenter}px, ${verticalCenter}px)`;
-    }
+    // Clear any position styling that might interfere
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
     
     // Clear the canvas
     ctx.fillStyle = 'black';

@@ -339,7 +339,7 @@ export default function Webcam({
           </div>
           
           {/* Canvas container with proper centering */}
-          <div id="canvas-container" className="w-full h-full flex justify-center items-center">
+          <div id="canvas-container" className="w-full h-full flex justify-center items-center" style={{ height: '500px' }}>
             <canvas 
               ref={canvasRef}
               id="previewCanvas"
@@ -347,8 +347,9 @@ export default function Webcam({
               style={{ 
                 imageRendering: 'pixelated',
                 backgroundColor: 'black',
-                maxWidth: '100%',
-                maxHeight: '100%',
+                position: 'relative',
+                width: '100%',
+                height: '100%',
                 objectFit: 'contain'
               }}
             />
