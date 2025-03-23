@@ -18,7 +18,7 @@ export default function ActivityFeed({
       </div>
       <div className="p-4 max-h-60 overflow-y-auto">
         {capturedItems.length === 0 ? (
-          <div className="text-gray-400 text-center py-4">No activity yet</div>
+          <div className="text-white text-center py-4 font-medium">No activity yet</div>
         ) : (
           capturedItems.map((item) => (
             <CapturedItem 

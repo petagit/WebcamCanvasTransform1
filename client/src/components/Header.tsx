@@ -11,11 +11,11 @@ export default function Header({ onHelpClick }: HeaderProps) {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Camera className="h-8 w-8 text-app-blue" />
-          <h1 className="text-2xl font-bold">PixelCam</h1>
+          <h1 className="text-2xl font-bold text-white text-shadow">PixelCam</h1>
         </div>
         <div className="flex items-center space-x-4">
           <button 
-            className="text-gray-300 hover:text-white"
+            className="text-white hover:text-blue-400"
             onClick={onHelpClick}
             aria-label="Help"
           >

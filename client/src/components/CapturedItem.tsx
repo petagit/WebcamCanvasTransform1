@@ -28,8 +28,8 @@ export default function CapturedItem({
       </div>
       
       <div className="flex-1">
-        <div className="text-sm">{item.type === "image" ? "Captured Image" : "Recorded Video"}</div>
-        <div className="text-xs text-gray-400">{timeString}</div>
+        <div className="text-sm font-medium text-white">{item.type === "image" ? "Captured Image" : "Recorded Video"}</div>
+        <div className="text-xs text-label">{timeString}</div>
       </div>
       
       <button 

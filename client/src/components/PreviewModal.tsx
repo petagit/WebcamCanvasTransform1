@@ -49,9 +49,9 @@ export default function PreviewModal({
     >
       <div className="bg-app-dark-light rounded-xl max-w-4xl w-full mx-4 overflow-hidden shadow-2xl">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Preview</h3>
+          <h3 className="text-lg font-semibold text-white">Preview</h3>
           <button 
-            className="text-gray-400 hover:text-white"
+            className="text-white hover:text-blue-400"
             onClick={onClose}
           >
             <X className="h-6 w-6" />
