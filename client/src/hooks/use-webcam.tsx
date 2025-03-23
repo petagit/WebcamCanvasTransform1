@@ -10,10 +10,13 @@ interface UseWebcamReturn {
   mediaRecorder: MediaRecorder | null;
   recordedChunks: Blob[];
   switchCamera: () => Promise<void>;
-  startCamera: () => Promise<void>;
+  startCamera: (preferredFacing?: 'user' | 'environment') => Promise<void>;
+  toggleFacingMode: () => Promise<void>;
   stopCamera: () => void;
   isCameraActive: boolean;
   availableCameras: WebcamDevice[];
+  currentFacingMode: 'user' | 'environment' | null;
+  isBackCamera: boolean;
 }
 
 export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamReturn {
@@ -23,6 +26,8 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
   const [availableCameras, setAvailableCameras] = useState<WebcamDevice[]>([]);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [currentFacingMode, setCurrentFacingMode] = useState<'user' | 'environment' | null>(null);
+  const [isBackCamera, setIsBackCamera] = useState(false);
 
   // Get available cameras
   const getAvailableCameras = async (): Promise<WebcamDevice[]> => {
@@ -43,8 +48,13 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
     }
   };
 
-  // Start camera with specified device or default
-  const startCamera = async (): Promise<void> => {
+  // Check if device is a mobile device
+  const isMobileDevice = (): boolean => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
+  // Start camera with specified device or preferred facing mode
+  const startCamera = async (preferredFacing?: 'user' | 'environment'): Promise<void> => {
     try {
       // First check if mediaDevices API is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -52,23 +62,49 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
       }
       
       const cameras = await getAvailableCameras();
+      const isMobile = isMobileDevice();
       
-      // Try with different constraints for better mobile compatibility
-      let constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: 'user', // Default to front camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
+      // Set default facing mode (front camera on mobile)
+      let facingMode = preferredFacing || currentFacingMode || 'user';
       
-      // If we have a specific device ID, try to use it
-      if (currentDeviceId || (cameras.length > 0)) {
+      // Try with different constraints based on device type and preferred facing mode
+      let constraints: MediaStreamConstraints;
+      
+      // For mobile devices, we'll use facingMode constraints which work better
+      if (isMobile) {
+        constraints = {
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+        
+        // For iOS Safari, we need to adjust the constraints for better compatibility
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          // iOS often works better with exact dimensions that match common camera resolutions
+          (constraints.video as MediaTrackConstraints).width = { ideal: 1280, max: 1920 };
+          (constraints.video as MediaTrackConstraints).height = { ideal: 720, max: 1080 };
+        }
+      } 
+      // If we have a specific device ID (for desktop browsers primarily)
+      else if (currentDeviceId || (cameras.length > 0)) {
         const deviceId = currentDeviceId || cameras[0].deviceId;
         constraints = {
           video: { 
-            deviceId: { ideal: deviceId }, // Use 'ideal' instead of 'exact' for better compatibility
+            deviceId: { ideal: deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+      }
+      // Fallback option for any other scenarios
+      else {
+        constraints = {
+          video: {
             width: { ideal: 1280 },
             height: { ideal: 720 }
           },
@@ -76,7 +112,7 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
         };
       }
       
-      // Try to get user media
+      // Try to get user media with the defined constraints
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(newStream);
       
@@ -93,12 +129,43 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
         };
       }
       
-      // Store the current device ID
+      // Store the current device ID and facing mode information
       if (newStream.getVideoTracks().length > 0) {
-        const settings = newStream.getVideoTracks()[0].getSettings();
+        const track = newStream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        
+        // Store device ID if available
         if (settings.deviceId) {
           setCurrentDeviceId(settings.deviceId);
         }
+        
+        // Detect if we're using the back camera based on camera label or facingMode
+        let detectedBackCamera = false;
+        
+        // Check facingMode in settings if available (not all browsers support this)
+        if (settings.facingMode) {
+          setCurrentFacingMode(settings.facingMode as 'user' | 'environment');
+          detectedBackCamera = settings.facingMode === 'environment';
+        } 
+        // If facingMode isn't available in settings, use what we requested
+        else if (isMobile) {
+          setCurrentFacingMode(facingMode);
+          detectedBackCamera = facingMode === 'environment';
+        }
+        // Or try to guess from camera label
+        else if (track.label) {
+          const label = track.label.toLowerCase();
+          // Most devices have keywords in camera names to identify back cameras
+          detectedBackCamera = 
+            label.includes('back') || 
+            label.includes('rear') || 
+            label.includes('environment') || 
+            label.includes('facing away');
+          
+          setCurrentFacingMode(detectedBackCamera ? 'environment' : 'user');
+        }
+        
+        setIsBackCamera(detectedBackCamera);
       }
       
       // Create media recorder with options that are widely supported
@@ -136,6 +203,21 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
         }
       }
     }
+  };
+  
+  // Toggle between front and back camera (primarily for mobile)
+  const toggleFacingMode = async (): Promise<void> => {
+    // Only proceed if camera is active
+    if (!isCameraActive) return;
+    
+    // Stop current camera
+    stopCamera();
+    
+    // Switch facing mode
+    const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    
+    // Start with new facing mode
+    await startCamera(newFacingMode);
   };
 
   // Stop camera
@@ -189,8 +271,11 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
     recordedChunks,
     switchCamera,
     startCamera,
+    toggleFacingMode,
     stopCamera,
     isCameraActive,
-    availableCameras
+    availableCameras,
+    currentFacingMode,
+    isBackCamera
   };
 }

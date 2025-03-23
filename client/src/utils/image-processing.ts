@@ -1,6 +1,6 @@
 /**
  * Process a video frame with dot matrix/halftone and other effects
- * Improved with extensive error handling for mobile compatibility
+ * Improved with extensive error handling for mobile compatibility and orientation
  */
 export function processFrame(
   video: HTMLVideoElement,
@@ -8,7 +8,8 @@ export function processFrame(
   dotSize: number,
   contrast: number,
   brightness: number,
-  isGrayscale: boolean
+  isGrayscale: boolean,
+  isBackCamera?: boolean
 ): void {
   // Safety check inputs
   if (!video || !canvas) return;
@@ -27,21 +28,62 @@ export function processFrame(
       return;
     }
     
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    // Handle orientation and dimensions
+    let videoWidth = video.videoWidth;
+    let videoHeight = video.videoHeight;
+    
+    // Check if we need to adjust for portrait mode on mobile
+    const isPortrait = isMobile && window.innerHeight > window.innerWidth;
+    
     // Ensure canvas dimensions match video (with reasonable limits)
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
       const MAX_WIDTH = 1920;
       const MAX_HEIGHT = 1080;
       
-      canvas.width = Math.min(video.videoWidth, MAX_WIDTH);
-      canvas.height = Math.min(video.videoHeight, MAX_HEIGHT);
+      // For mobile in portrait mode, we might want to apply different size constraints
+      if (isPortrait) {
+        // Maintain aspect ratio but ensure the canvas fits well in portrait view
+        const aspectRatio = videoWidth / videoHeight;
+        
+        if (videoWidth > videoHeight) {
+          // Landscape video in portrait view
+          canvas.height = Math.min(window.innerHeight * 0.5, MAX_HEIGHT);
+          canvas.width = canvas.height * aspectRatio;
+        } else {
+          // Portrait video in portrait view
+          canvas.width = Math.min(window.innerWidth * 0.9, MAX_WIDTH);
+          canvas.height = canvas.width / aspectRatio;
+        }
+      } else {
+        // Standard sizing for landscape or desktop view
+        canvas.width = Math.min(videoWidth, MAX_WIDTH);
+        canvas.height = Math.min(videoHeight, MAX_HEIGHT);
+      }
     }
     
     // Clear the canvas
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Save context for transformations
+    ctx.save();
+    
+    // Handle orientation for mobile devices
+    if (isMobile && isBackCamera && !isIOS) {
+      // Many Android back cameras need horizontal flipping
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
     // Draw the original video to get pixel data
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Restore context to remove transformations before further processing
+    ctx.restore();
     
     // Get image data to process
     let imageData;

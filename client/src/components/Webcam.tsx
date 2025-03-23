@@ -35,9 +35,12 @@ export default function Webcam({
     recordedChunks,
     switchCamera,
     startCamera: startCameraFn,
+    toggleFacingMode,
     stopCamera,
     isCameraActive,
     availableCameras,
+    currentFacingMode,
+    isBackCamera,
   } = useWebcam(videoRef);
   
   // Wrap startCamera function to handle errors more gracefully in the UI
@@ -63,7 +66,8 @@ export default function Webcam({
           filterSettings.dotSize,
           filterSettings.contrast,
           filterSettings.brightness,
-          filterSettings.isGrayscale
+          filterSettings.isGrayscale,
+          isBackCamera
         );
       }
       animationFrameId = requestAnimationFrame(renderFrame);
