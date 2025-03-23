@@ -55,7 +55,7 @@ export default function StatusBar({
           }
         </span>
       </div>
-      <div className="text-gray-400">{time}</div>
+      <div className="text-foreground">{time}</div>
     </div>
   );
 }
