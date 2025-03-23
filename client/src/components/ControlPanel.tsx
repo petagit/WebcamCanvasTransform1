@@ -73,12 +73,12 @@ export default function ControlPanel({
           </div>
           {!isWebcamSource && (
             <div className="mt-3">
-              <Label className="block text-sm font-medium text-gray-400 mb-1">Select MP4 file</Label>
+              <Label className="block text-label mb-1">Select MP4 file</Label>
               <input 
                 type="file" 
                 id="videoUpload" 
                 accept="video/mp4"
-                className="block w-full text-sm text-gray-400
+                className="block w-full text-sm text-white
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-lg file:border-0
                   file:text-sm file:font-semibold
@@ -99,8 +99,8 @@ export default function ControlPanel({
           {/* Dot Size */}
           <div>
             <div className="flex justify-between">
-              <Label className="text-sm font-medium text-gray-400">Dot Size</Label>
-              <span className="text-sm text-gray-400">{filterSettings.dotSize}</span>
+              <Label className="text-label">Dot Size</Label>
+              <span className="text-value">{filterSettings.dotSize}</span>
             </div>
             <Slider 
               value={[filterSettings.dotSize]} 
@@ -115,8 +115,8 @@ export default function ControlPanel({
           {/* Contrast */}
           <div>
             <div className="flex justify-between">
-              <Label className="text-sm font-medium text-gray-400">Contrast</Label>
-              <span className="text-sm text-gray-400">{filterSettings.contrast.toFixed(1)}</span>
+              <Label className="text-label">Contrast</Label>
+              <span className="text-value">{filterSettings.contrast.toFixed(1)}</span>
             </div>
             <Slider 
               value={[filterSettings.contrast]} 
@@ -131,8 +131,8 @@ export default function ControlPanel({
           {/* Brightness */}
           <div>
             <div className="flex justify-between">
-              <Label className="text-sm font-medium text-gray-400">Brightness</Label>
-              <span className="text-sm text-gray-400">{filterSettings.brightness.toFixed(1)}</span>
+              <Label className="text-label">Brightness</Label>
+              <span className="text-value">{filterSettings.brightness.toFixed(1)}</span>
             </div>
             <Slider 
               value={[filterSettings.brightness]} 
@@ -146,16 +146,16 @@ export default function ControlPanel({
           
           {/* Filter Type */}
           <div className="mt-4">
-            <Label className="block text-sm font-medium text-gray-400 mb-2">Filter Type</Label>
+            <Label className="block text-label mb-2">Filter Type</Label>
             <div className="grid grid-cols-2 gap-2">
               <Button 
-                className={filterSettings.isGrayscale ? "bg-app-blue" : "bg-gray-700 hover:bg-gray-600"}
+                className={filterSettings.isGrayscale ? "bg-app-blue text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
                 onClick={() => toggleFilterType(true)}
               >
                 Grayscale
               </Button>
               <Button 
-                className={!filterSettings.isGrayscale ? "bg-app-blue" : "bg-gray-700 hover:bg-gray-600"}
+                className={!filterSettings.isGrayscale ? "bg-app-blue text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
                 onClick={() => toggleFilterType(false)}
               >
                 Color
