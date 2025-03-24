@@ -15,7 +15,7 @@ dotenv.config();
 // Database connection
 const client = postgres(process.env.DATABASE_URL || "", {
   max: 10, // Connection pool size
-  ssl: process.env.NODE_ENV === 'production',
+  ssl: { rejectUnauthorized: false }, // Enable SSL with certificate validation disabled
 });
 
 const db = drizzle(client);
