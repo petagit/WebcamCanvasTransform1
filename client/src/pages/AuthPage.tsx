@@ -46,7 +46,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError("");
     
-    if (!username || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword || !email) {
       setError("All fields are required");
       return;
     }
@@ -56,12 +56,24 @@ export default function AuthPage() {
       return;
     }
     
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    
     try {
       // Use the registerMutation from our auth hook
       registerMutation.mutate({ 
         username, 
         password, 
-        email: email || undefined 
+        email 
       });
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -189,12 +201,13 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email (optional)</Label>
+                      <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        required
                       />
                     </div>
                     <div className="space-y-2">
