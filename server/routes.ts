@@ -537,6 +537,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API endpoint to delete captured media
+  app.delete("/api/media/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).id;
+      const mediaId = parseInt(req.params.id, 10);
+      
+      if (isNaN(mediaId)) {
+        return res.status(400).json({ error: "Invalid media ID" });
+      }
+      
+      // First check if the media belongs to the user
+      const media = await storage.getCapturedMediaById(mediaId);
+      
+      if (!media) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      if (media.userId !== userId) {
+        return res.status(403).json({ error: "You don't have permission to delete this media" });
+      }
+      
+      // Delete the media
+      await storage.deleteCapturedMedia(mediaId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      res.status(500).json({ error: "Failed to delete media" });
+    }
+  });
+  
   // Webhook to handle Stripe events
   app.post('/webhook/stripe', async (req, res) => {
     if (!stripe) {

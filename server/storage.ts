@@ -31,7 +31,9 @@ export interface IStorage {
   
   // Media methods
   getCapturedMedia(userId: number): Promise<CapturedMedia[]>;
+  getCapturedMediaById(id: number): Promise<CapturedMedia | undefined>;
   createCapturedMedia(media: InsertCapturedMedia): Promise<CapturedMedia>;
+  deleteCapturedMedia(id: number): Promise<void>;
   
   // Subscription methods
   getSubscription(userId: number): Promise<Subscription | undefined>;
@@ -96,6 +98,15 @@ export class PostgresStorage implements IStorage {
       .where(eq(capturedMedia.userId, userId));
   }
   
+  async getCapturedMediaById(id: number): Promise<CapturedMedia | undefined> {
+    const result = await db
+      .select()
+      .from(capturedMedia)
+      .where(eq(capturedMedia.id, id));
+      
+    return result[0];
+  }
+  
   async createCapturedMedia(media: InsertCapturedMedia): Promise<CapturedMedia> {
     const result = await db
       .insert(capturedMedia)
@@ -103,6 +114,12 @@ export class PostgresStorage implements IStorage {
       .returning();
       
     return result[0];
+  }
+  
+  async deleteCapturedMedia(id: number): Promise<void> {
+    await db
+      .delete(capturedMedia)
+      .where(eq(capturedMedia.id, id));
   }
   
   async getSubscription(userId: number): Promise<Subscription | undefined> {
@@ -274,6 +291,10 @@ export class MemStorage implements IStorage {
     return result;
   }
   
+  async getCapturedMediaById(id: number): Promise<CapturedMedia | undefined> {
+    return this.mediaItems.get(id);
+  }
+  
   async createCapturedMedia(media: InsertCapturedMedia): Promise<CapturedMedia> {
     const id = this.mediaId++;
     const capturedMedia: CapturedMedia = {
@@ -287,6 +308,10 @@ export class MemStorage implements IStorage {
     
     this.mediaItems.set(id, capturedMedia);
     return capturedMedia;
+  }
+  
+  async deleteCapturedMedia(id: number): Promise<void> {
+    this.mediaItems.delete(id);
   }
   
   async getSubscription(userId: number): Promise<Subscription | undefined> {
