@@ -101,8 +101,12 @@ function configurePassport() {
 
   // Google OAuth Strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    // Create a safer callback URL that will work in production
-    const callbackURL = '/auth/google/callback';
+    // Create a safer callback URL that will work in production and development
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
+    const callbackURL = `${protocol}://${host}/auth/google/callback`;
+    
+    console.log('Google OAuth callback URL:', callbackURL);
     
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
@@ -137,8 +141,12 @@ function configurePassport() {
 
   // GitHub OAuth Strategy
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    // Create a safer callback URL that will work in production
-    const callbackURL = '/auth/github/callback';
+    // Create a safer callback URL that will work in production and development
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
+    const callbackURL = `${protocol}://${host}/auth/github/callback`;
+    
+    console.log('GitHub OAuth callback URL:', callbackURL);
     
     passport.use(new GitHubStrategy({
       clientID: process.env.GITHUB_CLIENT_ID,

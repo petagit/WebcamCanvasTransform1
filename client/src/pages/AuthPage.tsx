@@ -69,6 +69,7 @@ export default function AuthPage() {
   };
 
   const handleOAuthLogin = (provider: string) => {
+    // The OAuth routes in the server are /auth/google and /auth/github
     window.location.href = `/auth/${provider}`;
   };
 
