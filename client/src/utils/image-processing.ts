@@ -187,18 +187,29 @@ export function processFrame(
     const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
     if (!tempCtx) {
+      console.error("Failed to get temp canvas context");
       // If we can't get context, just render the processed image
       ctx.putImageData(imageData, 0, 0);
       return;
     }
     
-    // Put processed image on temp canvas
-    tempCtx.putImageData(imageData, 0, 0);
+    console.log("Created temp canvas:", tempCanvas.width, "x", tempCanvas.height);
     
-    // Clear original canvas for dot effect
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    try {
+      // Put processed image on temp canvas
+      tempCtx.putImageData(imageData, 0, 0);
+      console.log("Put image data on temp canvas");
+      
+      // Clear original canvas for dot effect
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      console.log("Cleared original canvas for dot effect");
+    } catch (err) {
+      console.error("Error preparing canvases:", err);
+      ctx.putImageData(imageData, 0, 0);
+      return;
+    }
     
     // Calculate grid size with safety limits
     const gridSize = Math.max(2, Math.min(20, Math.floor(dotSize))); 
@@ -209,6 +220,8 @@ export function processFrame(
     // Calculate reasonable grid boundaries
     const maxGridX = Math.min(500, Math.floor(canvas.width / gridSize)); 
     const maxGridY = Math.min(500, Math.floor(canvas.height / gridSize));
+    
+    console.log("Grid size:", gridSize, "Grid boundaries:", maxGridX, "x", maxGridY);
     
     // Draw dot matrix pattern for primary layer
     for (let yi = 0; yi < maxGridY; yi++) {
@@ -223,8 +236,12 @@ export function processFrame(
         }
         
         try {
-          // Get pixel data safely
-          const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
+          // Make sure x, y are within the canvas bounds
+          const safeX = Math.min(Math.max(0, x), tempCanvas.width - 1);
+          const safeY = Math.min(Math.max(0, y), tempCanvas.height - 1);
+          
+          // Get pixel data safely from corrected coordinates
+          const pixelData = tempCtx.getImageData(safeX, safeY, 1, 1).data;
           
           // Calculate brightness
           const brightness = isGrayscale 
@@ -304,8 +321,12 @@ export function processFrame(
           }
           
           try {
-            // Get pixel data safely
-            const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
+            // Make sure x, y are within the canvas bounds
+            const safeX = Math.min(Math.max(0, x), tempCanvas.width - 1);
+            const safeY = Math.min(Math.max(0, y), tempCanvas.height - 1);
+            
+            // Get pixel data safely from corrected coordinates
+            const pixelData = tempCtx.getImageData(safeX, safeY, 1, 1).data;
             
             // Calculate brightness - invert for second layer to create contrast
             const brightness = isGrayscale 

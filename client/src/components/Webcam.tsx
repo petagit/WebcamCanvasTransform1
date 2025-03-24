@@ -96,37 +96,60 @@ export default function Webcam({
             ctx.drawImage(img, 0, 0);
             console.log("Drew original image on canvas");
             
-            // Get the image data
-            const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-            console.log("Got image data:", imageData.width, "x", imageData.height);
-            
-            // Create a fake video element for processFrame
-            const fakeVideo = document.createElement('video') as HTMLVideoElement;
-            fakeVideo.width = img.width;
-            fakeVideo.height = img.height;
-            
-            // Process with current filter settings
-            console.log("Applying filter settings:", JSON.stringify(filterSettings));
-            processFrame(
-              fakeVideo, // This won't be used for drawing, just for dimensions
-              canvasRef.current,
-              filterSettings,
-              false, // isBackCamera doesn't matter for still image
-              imageData // Pass the image data to avoid reading from the video
-            );
-            
-            // Once processed, capture the result for comparison
-            const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
-            console.log("Generated processed image URL:", processedImageUrl.substring(0, 50) + "...");
-            setAfterImage(processedImageUrl);
-            
-            // Show before/after comparison
-            setShowBeforeAfterComparison(true);
+            try {
+              // Get the image data
+              const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+              console.log("Got image data:", imageData.width, "x", imageData.height);
+              
+              // Create a fake video element for processFrame
+              const fakeVideo = document.createElement('video') as HTMLVideoElement;
+              fakeVideo.width = img.width;
+              fakeVideo.height = img.height;
+              
+              // Process with current filter settings
+              console.log("Applying filter settings:", JSON.stringify(filterSettings));
+              
+              // Create a backup of the original image for before/after
+              const backupCanvas = document.createElement('canvas');
+              backupCanvas.width = img.width;
+              backupCanvas.height = img.height;
+              const backupCtx = backupCanvas.getContext('2d');
+              
+              if (backupCtx) {
+                // Copy the original image to the backup canvas
+                backupCtx.drawImage(img, 0, 0);
+                
+                // Now apply the filter to the main canvas
+                processFrame(
+                  fakeVideo, // This won't be used for drawing, just for dimensions
+                  canvasRef.current,
+                  filterSettings,
+                  false, // isBackCamera doesn't matter for still image
+                  imageData // Pass the image data to avoid reading from the video
+                );
+                
+                // Once processed, capture the result for comparison
+                const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+                console.log("Generated processed image URL:", processedImageUrl.substring(0, 50) + "...");
+                setAfterImage(processedImageUrl);
+                
+                // Show before/after comparison
+                setShowBeforeAfterComparison(true);
+              } else {
+                console.error("Could not create backup canvas context");
+                setCameraError("Failed to process image. Please try again.");
+              }
+            } catch (imgError) {
+              console.error("Error during image processing:", imgError);
+              setCameraError("Error processing image data. Please try a different image.");
+            }
           } else {
             console.error("Could not get canvas context");
+            setCameraError("Could not initialize canvas. Please try reloading the page.");
           }
         } else {
           console.error("Canvas ref lost during image loading");
+          setCameraError("Internal error. Please try reloading the page.");
         }
       };
       
