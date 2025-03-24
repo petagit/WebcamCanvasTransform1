@@ -57,14 +57,15 @@ export default function AuthPage() {
     }
     
     try {
-      const response = await fetch("/api/register", {
+      const response = await fetch("/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, email }),
       });
       
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Registration failed");
       }
       
       // Auto-login after successful registration

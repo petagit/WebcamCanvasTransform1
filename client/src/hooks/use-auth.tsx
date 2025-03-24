@@ -51,17 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  // Placeholder for login mutation - we're primarily using OAuth
+  // Login mutation for local authentication
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
       
       if (!res.ok) {
-        throw new Error('Login failed');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Login failed');
       }
       
       return await res.json();
@@ -84,8 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/logout', {
-        method: 'POST',
+      const res = await fetch('/auth/logout', {
+        method: 'GET',
       });
       
       if (!res.ok) {
