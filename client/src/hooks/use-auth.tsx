@@ -13,11 +13,23 @@ type User = {
   lastLogin: Date;
 };
 
+type RegisterData = {
+  username: string;
+  password: string;
+  email?: string;
+};
+
+type LoginData = {
+  username: string;
+  password: string;
+};
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: any; // Simplified for now as we're using OAuth
+  loginMutation: any;
+  registerMutation: any;
   logoutMutation: any;
 };
 
@@ -83,6 +95,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (credentials: RegisterData) => {
+      const res = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Registration failed');
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['/api/user'], data.user);
+      toast({
+        title: 'Account created!',
+        description: 'Your account has been created successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Registration failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/auth/logout', {
@@ -117,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         loginMutation,
+        registerMutation,
         logoutMutation,
       }}
     >

@@ -18,7 +18,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [_, setLocation] = useLocation();
   
-  const { user, loginMutation, isLoading } = useAuth();
+  const { user, loginMutation, registerMutation, isLoading } = useAuth();
   
   // Redirect if already logged in
   useEffect(() => {
@@ -57,26 +57,19 @@ export default function AuthPage() {
     }
     
     try {
-      const response = await fetch("/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, email }),
+      // Use the registerMutation from our auth hook
+      registerMutation.mutate({ 
+        username, 
+        password, 
+        email: email || undefined 
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
-      }
-      
-      // Auto-login after successful registration
-      loginMutation.mutate({ username, password });
     } catch (err: any) {
       setError(err.message || "Registration failed");
     }
   };
 
   const handleOAuthLogin = (provider: string) => {
-    window.location.href = `/api/auth/${provider}`;
+    window.location.href = `/auth/${provider}`;
   };
 
   // If already authenticated, we'll redirect
