@@ -66,18 +66,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login mutation for local authentication
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      const res = await fetch('/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Login failed');
+      try {
+        console.log('Logging in with:', credentials);
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Login failed');
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
       }
-      
-      return await res.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['/api/user'], data);
@@ -98,18 +104,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (credentials: RegisterData) => {
-      const res = await fetch('/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Registration failed');
+      try {
+        console.log('Registering with:', credentials);
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          console.error('Registration response error:', data);
+          throw new Error(data.error || 'Registration failed');
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
       }
-      
-      return await res.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['/api/user'], data.user);

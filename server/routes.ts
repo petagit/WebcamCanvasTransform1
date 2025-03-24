@@ -140,9 +140,7 @@ function configurePassport() {
   // GitHub OAuth Strategy
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     // Create a safer callback URL that will work in production and development
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
-    const callbackURL = `${protocol}://${host}/auth/github/callback`;
+    const callbackURL = `${process.env.HOST_URL}/auth/github/callback`;
 
     console.log('GitHub OAuth callback URL:', callbackURL);
 
