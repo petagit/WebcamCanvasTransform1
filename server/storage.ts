@@ -231,7 +231,7 @@ export class MemStorage implements IStorage {
     const id = this.currentId++;
     
     // Hash password if provided
-    let password = insertUser.password;
+    let password = insertUser.password || null;
     if (password) {
       password = await bcrypt.hash(password, 10);
     }
@@ -240,6 +240,10 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id, 
       password,
+      email: insertUser.email || null,
+      providerId: insertUser.providerId || null,
+      profilePicture: insertUser.profilePicture || null,
+      authProvider: insertUser.authProvider || 'local',
       createdAt: new Date(),
       lastLogin: new Date()
     };
@@ -260,11 +264,12 @@ export class MemStorage implements IStorage {
   async getCapturedMedia(userId: number): Promise<CapturedMedia[]> {
     const result: CapturedMedia[] = [];
     
-    for (const media of this.mediaItems.values()) {
+    // Use Array.from to avoid iterator issues
+    Array.from(this.mediaItems.entries()).forEach(([_, media]) => {
       if (media.userId === userId) {
         result.push(media);
       }
-    }
+    });
     
     return result;
   }
@@ -274,7 +279,10 @@ export class MemStorage implements IStorage {
     const capturedMedia: CapturedMedia = {
       ...media,
       id,
-      timestamp: new Date()
+      timestamp: new Date(),
+      userId: media.userId || null,
+      mediaType: media.mediaType,
+      mediaUrl: media.mediaUrl
     };
     
     this.mediaItems.set(id, capturedMedia);
@@ -282,16 +290,20 @@ export class MemStorage implements IStorage {
   }
   
   async getSubscription(userId: number): Promise<Subscription | undefined> {
-    for (const subscription of this.userSubscriptions.values()) {
-      if (subscription.userId === userId) {
-        return subscription;
-      }
-    }
-    return undefined;
+    // Use Array.from to avoid iterator issues
+    const subscription = Array.from(this.userSubscriptions.values()).find(
+      sub => sub.userId === userId
+    );
+    return subscription;
   }
   
   async getAllSubscriptions(): Promise<Subscription[]> {
-    return Array.from(this.userSubscriptions.values());
+    // Convert Map to array manually to avoid iterator issues
+    const result: Subscription[] = [];
+    this.userSubscriptions.forEach(sub => {
+      result.push(sub);
+    });
+    return result;
   }
   
   async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
@@ -300,7 +312,12 @@ export class MemStorage implements IStorage {
       ...subscription,
       id,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      status: subscription.status || 'free',
+      stripeCustomerId: subscription.stripeCustomerId || null,
+      stripeSubscriptionId: subscription.stripeSubscriptionId || null,
+      currentPeriodStart: subscription.currentPeriodStart || null,
+      currentPeriodEnd: subscription.currentPeriodEnd || null
     };
     
     this.userSubscriptions.set(id, newSubscription);
