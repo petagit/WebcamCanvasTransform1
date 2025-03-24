@@ -33,15 +33,15 @@ async function hasActiveSubscription(req: Request, res: Response, next: NextFunc
   if (!req.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  
+
   try {
     const userId = (req.user as any).id;
     const subscription = await storage.getSubscription(userId);
-    
+
     if (subscription && (subscription.status === 'active' || subscription.status === 'free')) {
       return next();
     }
-    
+
     res.status(403).json({ 
       error: "Subscription required",
       subscriptionStatus: subscription ? subscription.status : 'none'
@@ -74,24 +74,24 @@ function configurePassport() {
     async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        
+
         if (!user) {
           return done(null, false, { message: 'Incorrect username.' });
         }
-        
+
         if (!user.password) {
           return done(null, false, { message: 'Invalid login method.' });
         }
-        
+
         const isValid = await bcrypt.compare(password, user.password);
-        
+
         if (!isValid) {
           return done(null, false, { message: 'Incorrect password.' });
         }
-        
+
         // Update last login time
         await storage.updateUserLastLogin(user.id);
-        
+
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -105,9 +105,9 @@ function configurePassport() {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
     const callbackURL = `${protocol}://${host}/auth/google/callback`;
-    
+
     console.log('Google OAuth callback URL:', callbackURL);
-    
+
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -117,7 +117,7 @@ function configurePassport() {
       try {
         // Check if user already exists
         let user = await storage.getUserByProviderId(profile.id);
-        
+
         if (!user) {
           // Create new user if doesn't exist
           user = await storage.createUser({
@@ -131,7 +131,7 @@ function configurePassport() {
           // Update last login time
           await storage.updateUserLastLogin(user.id);
         }
-        
+
         return done(null, user);
       } catch (err) {
         return done(err as Error);
@@ -145,9 +145,9 @@ function configurePassport() {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
     const callbackURL = `${protocol}://${host}/auth/github/callback`;
-    
+
     console.log('GitHub OAuth callback URL:', callbackURL);
-    
+
     passport.use(new GitHubStrategy({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
@@ -157,7 +157,7 @@ function configurePassport() {
       try {
         // Check if user already exists
         let user = await storage.getUserByProviderId(profile.id);
-        
+
         if (!user) {
           // Create new user if doesn't exist
           user = await storage.createUser({
@@ -171,7 +171,7 @@ function configurePassport() {
           // Update last login time
           await storage.updateUserLastLogin(user.id);
         }
-        
+
         return done(null, user);
       } catch (err) {
         return done(err as Error);
@@ -190,23 +190,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     }
   }));
-  
+
   // Initialize Passport
   app.use(passport.initialize());
   app.use(passport.session());
   configurePassport();
-  
+
   // Setup WebSockets
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
+
   wss.on('connection', (ws) => {
     ws.on('message', (message) => {
       // Process WebSocket messages if needed
       console.log('Received message:', message);
     });
   });
-  
+
   // API endpoint to get the status of the server
   app.get("/api/status", (req: Request, res: Response) => {
     res.json({ 
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } : null
     });
   });
-  
+
   // API endpoint to get current user info
   app.get("/api/user", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     })(req, res, next);
   });
-  
+
   // Local register
   app.post("/auth/register", async (req, res) => {
     try {
@@ -265,29 +265,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: z.string().email()
         })
         .omit({ providerId: true, profilePicture: true, authProvider: true });
-      
+
       const validationResult = registerSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         return res.status(400).json({ 
           error: "Invalid input", 
           details: validationResult.error.errors 
         });
       }
-      
+
       const { username, email, password } = validationResult.data;
-      
+
       // Check if username or email already exists
       const existingUsername = await storage.getUserByUsername(username);
       if (existingUsername) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      
+
       const existingEmail = await storage.getUserByEmail(email);
       if (existingEmail) {
         return res.status(400).json({ error: "Email already exists" });
       }
-      
+
       // Create user
       const user = await storage.createUser({
         username,
@@ -295,13 +295,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         authProvider: 'local'
       });
-      
+
       // Create a free subscription
       await storage.createSubscription({
         userId: user.id,
         status: 'free'
       });
-      
+
       // Log the user in
       req.logIn(user, (err) => {
         if (err) { 
@@ -321,12 +321,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Registration failed" });
     }
   });
-  
+
   // Google OAuth routes
   app.get("/auth/google", passport.authenticate("google", { 
     scope: ["profile", "email"] 
   }));
-  
+
   app.get("/auth/google/callback", 
     passport.authenticate("google", { 
       failureRedirect: "/auth" 
@@ -336,12 +336,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect("/");
     }
   );
-  
+
   // GitHub OAuth routes
   app.get("/auth/github", passport.authenticate("github", { 
     scope: ["user:email"] 
   }));
-  
+
   app.get("/auth/github/callback", 
     passport.authenticate("github", { 
       failureRedirect: "/auth" 
@@ -351,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect("/");
     }
   );
-  
+
   // Logout
   app.get("/auth/logout", (req, res) => {
     req.logout((err) => {
@@ -361,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     });
   });
-  
+
   // User profile route
   app.get("/api/user/profile", isAuthenticated, (req, res) => {
     res.json({
@@ -372,34 +372,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       authProvider: (req.user as any).authProvider
     });
   });
-  
+
   // Subscription routes
   app.get("/api/subscription", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const subscription = await storage.getSubscription(userId);
-      
+
       res.json(subscription || { status: 'none' });
     } catch (error) {
       console.error("Error fetching subscription:", error);
       res.status(500).json({ error: "Failed to fetch subscription" });
     }
   });
-  
+
   // Create a checkout session for subscription
   app.post("/api/subscription/checkout", isAuthenticated, async (req, res) => {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
-    
+
     try {
       const userId = (req.user as any).id;
       const user = req.user as any;
-      
+
       // Create or get Stripe customer
       let subscription = await storage.getSubscription(userId);
       let customerId = subscription?.stripeCustomerId;
-      
+
       if (!customerId) {
         // Create a new customer
         const customer = await stripe.customers.create({
@@ -409,9 +409,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId.toString()
           }
         });
-        
+
         customerId = customer.id;
-        
+
         // Save customer ID
         if (subscription) {
           await storage.updateSubscription(subscription.id, {
@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Create checkout session
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -443,35 +443,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId.toString()
         }
       });
-      
+
       res.json({ sessionId: session.id, url: session.url });
     } catch (error) {
       console.error("Error creating checkout session:", error);
       res.status(500).json({ error: "Failed to create checkout session" });
     }
   });
-  
+
   // Handle successful subscription
   app.get("/api/subscription/success", isAuthenticated, async (req, res) => {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
-    
+
     try {
       const sessionId = req.query.session_id as string;
       if (!sessionId) {
         return res.status(400).json({ error: "Missing session ID" });
       }
-      
+
       // Retrieve the session
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (!session) {
         return res.status(404).json({ error: "Session not found" });
       }
-      
+
       const userId = (req.user as any).id;
       const subscription = await storage.getSubscription(userId);
-      
+
       if (subscription) {
         // Update subscription status
         await storage.updateSubscription(subscription.id, {
@@ -481,36 +481,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
         });
       }
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error processing subscription success:", error);
       res.status(500).json({ error: "Failed to process subscription" });
     }
   });
-  
+
   // Cancel subscription
   app.post("/api/subscription/cancel", isAuthenticated, async (req, res) => {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
-    
+
     try {
       const userId = (req.user as any).id;
       const subscription = await storage.getSubscription(userId);
-      
+
       if (!subscription || !subscription.stripeSubscriptionId) {
         return res.status(404).json({ error: "No active subscription found" });
       }
-      
+
       // Cancel the subscription in Stripe
       await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
-      
+
       // Update subscription status in database
       await storage.updateSubscription(subscription.id, {
         status: 'cancelled'
       });
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error canceling subscription:", error);
@@ -529,80 +529,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch media" });
     }
   });
-  
+
   // API endpoint to save captured media
   app.post("/api/media", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any).id;
-      
+
       // Validate request body
       const { mediaType, mediaUrl } = req.body;
-      
+
       if (!mediaType || !mediaUrl) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
       if (mediaType !== 'image' && mediaType !== 'video') {
         return res.status(400).json({ error: "Invalid media type" });
       }
-      
+
       const media = await storage.createCapturedMedia({
         userId,
         mediaType,
         mediaUrl
       });
-      
+
       res.json(media);
     } catch (error) {
       console.error("Error saving media:", error);
       res.status(500).json({ error: "Failed to save media" });
     }
   });
-  
+
   // API endpoint to delete captured media
   app.delete("/api/media/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any).id;
       const mediaId = parseInt(req.params.id, 10);
-      
+
       if (isNaN(mediaId)) {
         return res.status(400).json({ error: "Invalid media ID" });
       }
-      
+
       // First check if the media belongs to the user
       const media = await storage.getCapturedMediaById(mediaId);
-      
+
       if (!media) {
         return res.status(404).json({ error: "Media not found" });
       }
-      
+
       if (media.userId !== userId) {
         return res.status(403).json({ error: "You don't have permission to delete this media" });
       }
-      
+
       // Delete the media
       await storage.deleteCapturedMedia(mediaId);
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting media:", error);
       res.status(500).json({ error: "Failed to delete media" });
     }
   });
-  
+
   // Webhook to handle Stripe events
   app.post('/webhook/stripe', async (req, res) => {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
-    
+
     const sig = req.headers['stripe-signature'] as string;
     if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
       return res.status(400).json({ error: "Missing signature" });
     }
-    
+
     let event;
-    
+
     try {
       event = stripe.webhooks.constructEvent(
         req.body,
@@ -613,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Webhook error:", err);
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
-    
+
     // Handle the event
     switch (event.type) {
       case 'customer.subscription.created':
@@ -628,22 +628,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
-    
+
     res.json({ received: true });
   });
-  
+
   // Helper function to handle subscription updates
   async function handleSubscriptionUpdated(subscription: any) {
     try {
       const customerId = subscription.customer;
-      
+
       // Find user by customer ID
       const allSubscriptions = await Promise.all(
         (await storage.getAllSubscriptions()).filter(
           sub => sub.stripeCustomerId === customerId
         )
       );
-      
+
       if (allSubscriptions.length > 0) {
         for (const sub of allSubscriptions) {
           await storage.updateSubscription(sub.id, {
@@ -658,19 +658,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error handling subscription update:", error);
     }
   }
-  
+
   // Helper function to handle subscription cancellation
   async function handleSubscriptionCanceled(subscription: any) {
     try {
       const customerId = subscription.customer;
-      
+
       // Find user by customer ID
       const allSubscriptions = await Promise.all(
         (await storage.getAllSubscriptions()).filter(
           sub => sub.stripeCustomerId === customerId
         )
       );
-      
+
       if (allSubscriptions.length > 0) {
         for (const sub of allSubscriptions) {
           await storage.updateSubscription(sub.id, {
