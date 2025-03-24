@@ -103,17 +103,21 @@ export default function Webcam({
   
   // Set up camera usage timer for paywall
   const cameraUsageTimeRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    let cameraTimer: NodeJS.Timeout;
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     
     if (isCameraActive && !showPaywall) {
       // Reset timer when camera is first activated
-      if (!cameraTimer) {
-        cameraUsageTimeRef.current = 0;
-      }
+      cameraUsageTimeRef.current = 0;
       
-      cameraTimer = setInterval(() => {
+      // Start a new timer
+      timerRef.current = setInterval(() => {
         cameraUsageTimeRef.current += 1;
         console.log(`Camera active for ${cameraUsageTimeRef.current} seconds`);
         
@@ -132,7 +136,10 @@ export default function Webcam({
     }
     
     return () => {
-      if (cameraTimer) clearInterval(cameraTimer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [isCameraActive, showPaywall, isRecording, mediaRecorder, onStreamingChange]);
 

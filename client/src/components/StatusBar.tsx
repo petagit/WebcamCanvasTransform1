@@ -15,8 +15,13 @@ export default function StatusBar({
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isStreaming) {
-      setStartTime(Date.now());
+    // Start timer when either streaming or camera is active
+    if (isStreaming || cameraReady) {
+      // Only set startTime if it hasn't been set yet
+      if (!startTime) {
+        setStartTime(Date.now());
+      }
+      
       interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - (startTime || Date.now())) / 1000);
         const hours = Math.floor(elapsed / 3600).toString().padStart(2, '0');
@@ -25,6 +30,7 @@ export default function StatusBar({
         setTime(`${hours}:${minutes}:${seconds}`);
       }, 1000);
     } else {
+      // Reset timer when camera is not active
       setTime("00:00:00");
       setStartTime(null);
     }
@@ -32,7 +38,7 @@ export default function StatusBar({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isStreaming, startTime]);
+  }, [isStreaming, cameraReady, startTime]);
   
   return (
     <div className="mb-4 p-2 rounded-lg bg-app-dark-light text-sm flex items-center justify-between">
