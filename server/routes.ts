@@ -102,9 +102,7 @@ function configurePassport() {
   // Google OAuth Strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     // Create a safer callback URL that will work in production and development
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.NODE_ENV === 'production' ? process.env.HOST_URL || 'localhost:3000' : 'localhost:5000';
-    const callbackURL = `${protocol}://${host}/auth/google/callback`;
+    const callbackURL = `${process.env.HOST_URL}/auth/google/callback`;
 
     console.log('Google OAuth callback URL:', callbackURL);
 
