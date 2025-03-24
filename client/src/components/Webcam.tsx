@@ -29,6 +29,7 @@ export default function Webcam({
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
   const isMobile = useIsMobile();
   
   const {
@@ -83,13 +84,29 @@ export default function Webcam({
     };
   }, [isCameraActive, filterSettings, isBackCamera]);
 
-  // Set up recording timer
+  // Set up recording timer and paywall trigger
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (isRecording) {
       interval = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
+        setRecordingTime((prev) => {
+          const newTime = prev + 1;
+          // Show paywall after 10 seconds of streaming
+          if (newTime === 10) {
+            setShowPaywall(true);
+            
+            // Stop recording after paywall is shown (optional, remove this if you want to just show paywall but keep recording)
+            setTimeout(() => {
+              if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                setIsRecording(false);
+                onStreamingChange(false);
+              }
+            }, 1000);
+          }
+          return newTime;
+        });
       }, 1000);
     } else {
       setRecordingTime(0);
@@ -98,7 +115,7 @@ export default function Webcam({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRecording]);
+  }, [isRecording, mediaRecorder, onStreamingChange]);
 
   // Update parent components when camera is active
   useEffect(() => {
@@ -354,6 +371,64 @@ export default function Webcam({
               }}
             />
           </div>
+          
+          {/* Paywall Overlay */}
+          {showPaywall && (
+            <div className="absolute inset-0 bg-black bg-opacity-80 flex flex-col justify-center items-center text-center px-4 z-10">
+              <div className="bg-gradient-to-r from-purple-700 to-blue-500 p-1 rounded-lg">
+                <div className="bg-gray-900 rounded-md p-6 max-w-md">
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                      Premium Subscription Required
+                    </span>
+                  </h3>
+                  <p className="text-gray-300 mb-4">
+                    You've used up your free preview time. Get unlimited streaming and advanced filters with a premium subscription.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-lg font-semibold text-white mb-2">Premium Benefits</h4>
+                      <ul className="text-gray-300 text-sm space-y-2 text-left">
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-2">✓</span>
+                          Unlimited video streaming
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-2">✓</span>
+                          Access to all premium filters
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-2">✓</span>
+                          High-resolution exports
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-2">✓</span>
+                          Save unlimited media to your gallery
+                        </li>
+                      </ul>
+                    </div>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3"
+                      onClick={() => {
+                        window.location.href = "/subscription";
+                      }}
+                    >
+                      Subscribe Now
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="w-full border-gray-600 text-gray-400 hover:text-white hover:bg-gray-800 mt-2"
+                      onClick={() => {
+                        setShowPaywall(false);
+                      }}
+                    >
+                      Continue with Limited Access
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
