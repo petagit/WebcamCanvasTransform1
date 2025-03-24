@@ -101,10 +101,13 @@ function configurePassport() {
 
   // Google OAuth Strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    // Create a safer callback URL that will work in production
+    const callbackURL = '/auth/google/callback';
+    
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.HOST_URL || 'http://localhost:5000'}/auth/google/callback`
+      callbackURL
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -134,10 +137,13 @@ function configurePassport() {
 
   // GitHub OAuth Strategy
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    // Create a safer callback URL that will work in production
+    const callbackURL = '/auth/github/callback';
+    
     passport.use(new GitHubStrategy({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: `${process.env.HOST_URL || 'http://localhost:5000'}/auth/github/callback`
+      callbackURL
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -415,8 +421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'subscription',
-        success_url: `${process.env.HOST_URL || 'http://localhost:5000'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.HOST_URL || 'http://localhost:5000'}/subscription/cancel`,
+        success_url: `/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `/subscription/cancel`,
         metadata: {
           userId: userId.toString()
         }
