@@ -34,7 +34,7 @@ export default function Header({ onHelpClick }: HeaderProps) {
             <HelpCircle className="h-6 w-6" />
           </button>
 
-          {user && (
+          {user ? (
             <Button 
               variant="ghost" 
               size="sm"
@@ -44,6 +44,16 @@ export default function Header({ onHelpClick }: HeaderProps) {
               <LogOut className="h-5 w-5 mr-1" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
+          ) : (
+            <Link href="/auth">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-white border-white hover:bg-white hover:text-app-dark-light"
+              >
+                <span>Login</span>
+              </Button>
+            </Link>
           )}
         </div>
       </div>
