@@ -11,9 +11,24 @@ export function processFrame(
   isBackCamera?: boolean,
   providedImageData?: ImageData
 ): void {
+  console.log("processFrame called with:", {
+    hasVideo: !!video, 
+    hasCanvas: !!canvas, 
+    filterSettings,
+    isBackCamera,
+    hasProvidedImageData: !!providedImageData
+  });
+
   // Safety check inputs
-  if (!canvas) return;
-  if (!video && !providedImageData) return;
+  if (!canvas) {
+    console.error("Missing canvas");
+    return;
+  }
+  
+  if (!video && !providedImageData) {
+    console.error("Missing both video and providedImageData");
+    return;
+  }
   
   // Extract settings with defaults for any missing or invalid values
   const dotSize = filterSettings.dotSize <= 0 ? 5 : filterSettings.dotSize;
@@ -27,7 +42,10 @@ export function processFrame(
   
   // Get canvas context
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) {
+    console.error("Failed to get canvas context");
+    return;
+  }
   
   try {
     // If we're dealing with a video stream (not an uploaded image)
@@ -35,11 +53,20 @@ export function processFrame(
     
     if (providedImageData) {
       // If image data was provided directly (for uploaded images)
+      console.log("Using provided image data:", providedImageData.width, "x", providedImageData.height);
       imageData = providedImageData;
+      
+      // For uploaded images, we don't need to resize the canvas since it's already set correctly
+      // We just need to clear it before applying effects
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
       // We're processing a video stream
+      console.log("Processing video stream");
+      
       // Ensure video has valid dimensions before proceeding
       if (!video.videoWidth || !video.videoHeight) {
+        console.warn("Video not ready yet, dimensions:", video.videoWidth, "x", video.videoHeight);
         // Video might not be ready yet, just clear canvas
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -53,6 +80,7 @@ export function processFrame(
       // Handle orientation and dimensions
       let videoWidth = video.videoWidth;
       let videoHeight = video.videoHeight;
+      console.log("Video dimensions:", videoWidth, "x", videoHeight);
       
       // Check if we need to adjust for portrait mode on mobile
       const isPortrait = isMobile && window.innerHeight > window.innerWidth;
@@ -61,6 +89,7 @@ export function processFrame(
       const canvasContainer = document.getElementById('canvas-container');
       const containerWidth = canvasContainer?.clientWidth || window.innerWidth;
       const containerHeight = canvasContainer?.clientHeight || window.innerHeight * 0.6;
+      console.log("Container dimensions:", containerWidth, "x", containerHeight);
       
       // Reset any previous transformations
       canvas.style.transform = '';
@@ -119,6 +148,7 @@ export function processFrame(
       
       // Get image data to process
       try {
+        console.log("Getting image data from canvas:", canvas.width, "x", canvas.height);
         imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       } catch (err) {
         console.error("Failed to get image data:", err);

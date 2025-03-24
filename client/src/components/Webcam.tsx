@@ -67,12 +67,21 @@ export default function Webcam({
 
   // Process the uploaded image with current filter settings
   const processUploadedImage = () => {
-    if (!canvasRef.current || !originalImageUrl) return;
+    console.log("Processing uploaded image...");
+    if (!canvasRef.current || !originalImageUrl) {
+      console.error("Missing canvas or original image URL");
+      return;
+    }
     
     try {
+      console.log("Original image URL:", originalImageUrl.substring(0, 50) + "...");
+      
       // Create temp image from original
       const img = new Image();
+      
       img.onload = () => {
+        console.log("Image loaded with dimensions:", img.width, "x", img.height);
+        
         if (canvasRef.current) {
           // Store the original image for the slider
           setBeforeImage(originalImageUrl);
@@ -85,16 +94,19 @@ export default function Webcam({
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0);
+            console.log("Drew original image on canvas");
             
             // Get the image data
             const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+            console.log("Got image data:", imageData.width, "x", imageData.height);
             
             // Create a fake video element for processFrame
-            const fakeVideo = document.createElement('video');
+            const fakeVideo = document.createElement('video') as HTMLVideoElement;
             fakeVideo.width = img.width;
             fakeVideo.height = img.height;
             
             // Process with current filter settings
+            console.log("Applying filter settings:", JSON.stringify(filterSettings));
             processFrame(
               fakeVideo, // This won't be used for drawing, just for dimensions
               canvasRef.current,
@@ -105,14 +117,26 @@ export default function Webcam({
             
             // Once processed, capture the result for comparison
             const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+            console.log("Generated processed image URL:", processedImageUrl.substring(0, 50) + "...");
             setAfterImage(processedImageUrl);
             
             // Show before/after comparison
             setShowBeforeAfterComparison(true);
+          } else {
+            console.error("Could not get canvas context");
           }
+        } else {
+          console.error("Canvas ref lost during image loading");
         }
       };
+      
+      img.onerror = (err) => {
+        console.error("Error loading image:", err);
+        setCameraError("Failed to load the image. Please try again.");
+      };
+      
       img.src = originalImageUrl;
+      console.log("Set image src, waiting for load...");
     } catch (error) {
       console.error("Error processing image:", error);
       setCameraError("Error applying filters. Please try again.");
@@ -417,7 +441,11 @@ export default function Webcam({
                                   // Draw the original image to temp canvas
                                   tempCtx.drawImage(img, 0, 0, width, height);
                                   // Store the original image data URL
-                                  setOriginalImageUrl(tempCanvas.toDataURL('image/jpeg'));
+                                  const originalUrl = tempCanvas.toDataURL('image/jpeg');
+                                  setOriginalImageUrl(originalUrl);
+                                  // Also set it as the "before" image for comparison
+                                  setBeforeImage(originalUrl);
+                                  console.log("Set originalImageUrl and beforeImage:", originalUrl.substring(0, 50) + "...");
                                 }
                                 
                                 canvasRef.current.width = width;
@@ -652,7 +680,10 @@ export default function Webcam({
                           
                           if (tempCtx) {
                             tempCtx.drawImage(img, 0, 0, width, height);
-                            setOriginalImageUrl(tempCanvas.toDataURL('image/jpeg'));
+                            const origUrl = tempCanvas.toDataURL('image/jpeg');
+                            setOriginalImageUrl(origUrl);
+                            setBeforeImage(origUrl);
+                            console.log("New Image Upload: Set beforeImage:", origUrl.substring(0, 50) + "...");
                           }
                           
                           canvasRef.current.width = width;
