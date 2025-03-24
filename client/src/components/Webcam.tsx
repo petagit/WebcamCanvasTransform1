@@ -30,6 +30,9 @@ export default function Webcam({
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [uploadedImageMode, setUploadedImageMode] = useState(false);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
+  const [showBeforeAfterComparison, setShowBeforeAfterComparison] = useState(false);
   const isMobile = useIsMobile();
   
   const {
@@ -345,10 +348,24 @@ export default function Webcam({
                                   width = width * ratio;
                                 }
                                 
+                                // Store the original image for before/after comparison
+                                const tempCanvas = document.createElement('canvas');
+                                tempCanvas.width = width;
+                                tempCanvas.height = height;
+                                const tempCtx = tempCanvas.getContext('2d');
+                                
+                                if (tempCtx) {
+                                  // Draw the original image to temp canvas
+                                  tempCtx.drawImage(img, 0, 0, width, height);
+                                  // Store the original image data URL
+                                  setOriginalImageUrl(tempCanvas.toDataURL('image/jpeg'));
+                                }
+                                
                                 canvasRef.current.width = width;
                                 canvasRef.current.height = height;
                                 ctx.drawImage(img, 0, 0, width, height);
                                 setShowPlaceholder(false);
+                                setUploadedImageMode(true);
                                 onCameraReady();
                               }
                             }
