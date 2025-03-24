@@ -219,6 +219,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } : null
     });
   });
+  
+  // API endpoint to get current user info
+  app.get("/api/user", (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
 
   // Auth routes
   // Local auth
@@ -321,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/auth/google/callback", 
     passport.authenticate("google", { 
-      failureRedirect: "/login" 
+      failureRedirect: "/auth" 
     }),
     (req, res) => {
       // Successful authentication, redirect home
@@ -336,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/auth/github/callback", 
     passport.authenticate("github", { 
-      failureRedirect: "/login" 
+      failureRedirect: "/auth" 
     }),
     (req, res) => {
       // Successful authentication, redirect home
