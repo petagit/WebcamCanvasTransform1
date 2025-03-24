@@ -2,10 +2,11 @@ import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
 import { processFrame } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
-import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2 } from "lucide-react";
+import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2, Upload } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { FilterSettings } from "@/pages/Home";
 import BeforeAfterSlider from "./BeforeAfterSlider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface WebcamProps {
   onCameraReady: () => void;
@@ -34,6 +35,9 @@ export default function Webcam({
   const [uploadedImageMode, setUploadedImageMode] = useState(false);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [showBeforeAfterComparison, setShowBeforeAfterComparison] = useState(false);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+  const [uploadedVideoElement, setUploadedVideoElement] = useState<HTMLVideoElement | null>(null);
+  const [isProcessingVideo, setIsProcessingVideo] = useState(false);
   const isMobile = useIsMobile();
   
   const {
@@ -65,6 +69,104 @@ export default function Webcam({
   const [beforeImage, setBeforeImage] = useState<string | null>(null);
   const [afterImage, setAfterImage] = useState<string | null>(null);
 
+  // Process uploaded video with current filter settings
+  const processUploadedVideo = () => {
+    console.log("Processing uploaded video...");
+    if (!canvasRef.current || !uploadedVideoElement || !uploadedVideoUrl) {
+      console.error("Missing canvas, video element, or video URL");
+      return;
+    }
+    
+    try {
+      // If webcam is active, stop it
+      if (isCameraActive) {
+        stopCamera();
+      }
+
+      // Set uploaded image mode to prevent webcam rendering
+      setUploadedImageMode(true);
+      
+      // Store the original video for comparison
+      setBeforeImage(createThumbnailFromVideo(uploadedVideoElement));
+      
+      // Set up video processing loop
+      setIsProcessingVideo(true);
+      
+      // Set up event handlers for the video
+      uploadedVideoElement.onplay = () => {
+        // Start processing video frames
+        processVideoFrame();
+      };
+      
+      // Start playing the video
+      uploadedVideoElement.play().catch(err => {
+        console.error("Error playing video:", err);
+        setCameraError("Failed to play the video. Please try again.");
+      });
+    } catch (error) {
+      console.error("Error processing video:", error);
+      setCameraError("Error applying filters to video. Please try again.");
+      setIsProcessingVideo(false);
+    }
+  };
+  
+  // Process a single frame of the uploaded video
+  const processVideoFrame = () => {
+    if (!canvasRef.current || !uploadedVideoElement || !isProcessingVideo) return;
+    
+    try {
+      // Draw the current video frame to canvas
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        // Set canvas dimensions to match video
+        canvasRef.current.width = uploadedVideoElement.videoWidth;
+        canvasRef.current.height = uploadedVideoElement.videoHeight;
+        
+        // Draw current video frame
+        ctx.drawImage(uploadedVideoElement, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        
+        // Apply filters
+        const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+        processFrame(
+          uploadedVideoElement,
+          canvasRef.current,
+          filterSettings,
+          false,
+          imageData
+        );
+        
+        // Continue processing if video is still playing
+        if (!uploadedVideoElement.paused && !uploadedVideoElement.ended && isProcessingVideo) {
+          requestAnimationFrame(processVideoFrame);
+        } else {
+          setIsProcessingVideo(false);
+          // Capture the final processed frame for comparison
+          const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+          setAfterImage(processedImageUrl);
+          setShowBeforeAfterComparison(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error processing video frame:", error);
+      setIsProcessingVideo(false);
+    }
+  };
+  
+  // Create a thumbnail from the video element
+  const createThumbnailFromVideo = (videoElement: HTMLVideoElement): string => {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = videoElement.videoWidth;
+    tempCanvas.height = videoElement.videoHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    if (tempCtx) {
+      tempCtx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+      return tempCanvas.toDataURL('image/jpeg');
+    }
+    
+    return '';
+  };
+  
   // Process the uploaded image with current filter settings
   const processUploadedImage = () => {
     console.log("Processing uploaded image...");
