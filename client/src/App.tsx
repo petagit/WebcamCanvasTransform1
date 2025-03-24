@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import AuthPage from "@/pages/AuthPage";
+import Subscription from "@/pages/Subscription";
 
 function Router() {
   return (
@@ -14,6 +15,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/subscription" component={Subscription} />
+      <Route path="/subscription/success" component={Subscription} />
+      <Route path="/subscription/cancel" component={Subscription} />
       <Route component={NotFound} />
     </Switch>
   );

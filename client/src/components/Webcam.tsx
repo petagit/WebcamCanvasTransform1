@@ -84,29 +84,13 @@ export default function Webcam({
     };
   }, [isCameraActive, filterSettings, isBackCamera]);
 
-  // Set up recording timer and paywall trigger
+  // Set up recording timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (isRecording) {
       interval = setInterval(() => {
-        setRecordingTime((prev) => {
-          const newTime = prev + 1;
-          // Show paywall after 10 seconds of streaming
-          if (newTime === 10) {
-            setShowPaywall(true);
-            
-            // Stop recording after paywall is shown (optional, remove this if you want to just show paywall but keep recording)
-            setTimeout(() => {
-              if (mediaRecorder && isRecording) {
-                mediaRecorder.stop();
-                setIsRecording(false);
-                onStreamingChange(false);
-              }
-            }, 1000);
-          }
-          return newTime;
-        });
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } else {
       setRecordingTime(0);
@@ -115,7 +99,42 @@ export default function Webcam({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRecording, mediaRecorder, onStreamingChange]);
+  }, [isRecording]);
+  
+  // Set up camera usage timer for paywall
+  const cameraUsageTimeRef = useRef(0);
+  
+  useEffect(() => {
+    let cameraTimer: NodeJS.Timeout;
+    
+    if (isCameraActive && !showPaywall) {
+      // Reset timer when camera is first activated
+      if (!cameraTimer) {
+        cameraUsageTimeRef.current = 0;
+      }
+      
+      cameraTimer = setInterval(() => {
+        cameraUsageTimeRef.current += 1;
+        console.log(`Camera active for ${cameraUsageTimeRef.current} seconds`);
+        
+        // Show paywall after 10 seconds of camera usage
+        if (cameraUsageTimeRef.current === 10) {
+          setShowPaywall(true);
+          
+          // If recording, stop it when paywall shows
+          if (isRecording && mediaRecorder) {
+            mediaRecorder.stop();
+            setIsRecording(false);
+            onStreamingChange(false);
+          }
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (cameraTimer) clearInterval(cameraTimer);
+    };
+  }, [isCameraActive, showPaywall, isRecording, mediaRecorder, onStreamingChange]);
 
   // Update parent components when camera is active
   useEffect(() => {
