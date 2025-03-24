@@ -2,9 +2,10 @@ import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
 import { processFrame } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
-import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal } from "lucide-react";
+import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { FilterSettings } from "@/pages/Home";
+import BeforeAfterSlider from "./BeforeAfterSlider";
 
 interface WebcamProps {
   onCameraReady: () => void;
@@ -60,12 +61,70 @@ export default function Webcam({
     }
   };
 
+  // State for before/after images
+  const [beforeImage, setBeforeImage] = useState<string | null>(null);
+  const [afterImage, setAfterImage] = useState<string | null>(null);
+
+  // Process the uploaded image with current filter settings
+  const processUploadedImage = () => {
+    if (!canvasRef.current || !originalImageUrl) return;
+    
+    try {
+      // Create temp image from original
+      const img = new Image();
+      img.onload = () => {
+        if (canvasRef.current) {
+          // Store the original image for the slider
+          setBeforeImage(originalImageUrl);
+          
+          // Process the image with filters
+          canvasRef.current.width = img.width;
+          canvasRef.current.height = img.height;
+          
+          // First draw the original image
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            
+            // Get the image data
+            const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+            
+            // Create a fake video element for processFrame
+            const fakeVideo = document.createElement('video');
+            fakeVideo.width = img.width;
+            fakeVideo.height = img.height;
+            
+            // Process with current filter settings
+            processFrame(
+              fakeVideo, // This won't be used for drawing, just for dimensions
+              canvasRef.current,
+              filterSettings,
+              false, // isBackCamera doesn't matter for still image
+              imageData // Pass the image data to avoid reading from the video
+            );
+            
+            // Once processed, capture the result for comparison
+            const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+            setAfterImage(processedImageUrl);
+            
+            // Show before/after comparison
+            setShowBeforeAfterComparison(true);
+          }
+        }
+      };
+      img.src = originalImageUrl;
+    } catch (error) {
+      console.error("Error processing image:", error);
+      setCameraError("Error applying filters. Please try again.");
+    }
+  };
+
   // Set up animation frame for canvas rendering
   useEffect(() => {
     let animationFrameId: number;
     
     const renderFrame = () => {
-      if (videoRef.current && canvasRef.current && isCameraActive) {
+      if (videoRef.current && canvasRef.current && isCameraActive && !uploadedImageMode) {
         processFrame(
           videoRef.current,
           canvasRef.current,
@@ -76,7 +135,7 @@ export default function Webcam({
       animationFrameId = requestAnimationFrame(renderFrame);
     };
     
-    if (isCameraActive) {
+    if (isCameraActive && !uploadedImageMode) {
       animationFrameId = requestAnimationFrame(renderFrame);
     }
     
@@ -85,7 +144,7 @@ export default function Webcam({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isCameraActive, filterSettings, isBackCamera]);
+  }, [isCameraActive, filterSettings, isBackCamera, uploadedImageMode]);
 
   // Set up recording timer
   useEffect(() => {
@@ -415,6 +474,47 @@ export default function Webcam({
             />
           </div>
           
+          {/* Before/After Comparison */}
+          {showBeforeAfterComparison && beforeImage && afterImage && (
+            <div className="absolute inset-0 bg-black bg-opacity-90 flex flex-col justify-center items-center text-center px-4 z-10">
+              <div className="w-full max-w-3xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-white">Before & After Comparison</h3>
+                  <Button 
+                    variant="ghost" 
+                    className="text-gray-400 hover:text-white"
+                    onClick={() => setShowBeforeAfterComparison(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+                <BeforeAfterSlider 
+                  beforeImage={beforeImage} 
+                  afterImage={afterImage}
+                  className="rounded-lg shadow-xl"
+                />
+                <div className="flex justify-between mt-4">
+                  <Button
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:text-white hover:bg-gray-800"
+                    onClick={() => setShowBeforeAfterComparison(false)}
+                  >
+                    Continue Editing
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      onCaptureImage(afterImage);
+                      setShowBeforeAfterComparison(false);
+                    }}
+                  >
+                    Save Processed Image
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Paywall Overlay */}
           {showPaywall && (
             <div className="absolute inset-0 bg-black bg-opacity-80 flex flex-col justify-center items-center text-center px-4 z-10">
@@ -486,18 +586,90 @@ export default function Webcam({
             <span>Capture</span>
           </Button>
           
-          <Button
-            className={`flex items-center space-x-1 ${isRecording ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'}`}
-            onClick={toggleRecording}
-            disabled={!isCameraActive}
-          >
-            <Video className="h-5 w-5" />
-            <span>{isRecording ? 'Stop Stream' : 'Start Stream'}</span>
-          </Button>
+          {uploadedImageMode && originalImageUrl ? (
+            <Button
+              className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700"
+              onClick={processUploadedImage}
+              disabled={showPlaceholder}
+            >
+              <Wand2 className="h-5 w-5" />
+              <span>Apply Filters</span>
+            </Button>
+          ) : (
+            <Button
+              className={`flex items-center space-x-1 ${isRecording ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'}`}
+              onClick={toggleRecording}
+              disabled={!isCameraActive}
+            >
+              <Video className="h-5 w-5" />
+              <span>{isRecording ? 'Stop Stream' : 'Start Stream'}</span>
+            </Button>
+          )}
         </div>
         
         <div className="flex items-center space-x-2">
-          {isMobile ? (
+          {uploadedImageMode ? (
+            <Button
+              className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600"
+              onClick={() => {
+                // Handle file upload again
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.click();
+                
+                input.onchange = (e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.files && target.files[0]) {
+                    const file = target.files[0];
+                    const url = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => {
+                      if (canvasRef.current) {
+                        const ctx = canvasRef.current.getContext('2d');
+                        if (ctx) {
+                          const MAX_WIDTH = 1280;
+                          const MAX_HEIGHT = 720;
+                          let width = img.width;
+                          let height = img.height;
+                          
+                          if (width > MAX_WIDTH) {
+                            const ratio = MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                            height = height * ratio;
+                          }
+                          if (height > MAX_HEIGHT) {
+                            const ratio = MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                            width = width * ratio;
+                          }
+                          
+                          // Store the original image for before/after comparison
+                          const tempCanvas = document.createElement('canvas');
+                          tempCanvas.width = width;
+                          tempCanvas.height = height;
+                          const tempCtx = tempCanvas.getContext('2d');
+                          
+                          if (tempCtx) {
+                            tempCtx.drawImage(img, 0, 0, width, height);
+                            setOriginalImageUrl(tempCanvas.toDataURL('image/jpeg'));
+                          }
+                          
+                          canvasRef.current.width = width;
+                          canvasRef.current.height = height;
+                          ctx.drawImage(img, 0, 0, width, height);
+                        }
+                      }
+                    };
+                    img.src = url;
+                  }
+                };
+              }}
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>New Image</span>
+            </Button>
+          ) : isMobile ? (
             // For mobile devices, show a toggle for front/back camera
             <Button
               className={`flex items-center space-x-1 ${isBackCamera ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-cyan-600 hover:bg-cyan-700'}`}

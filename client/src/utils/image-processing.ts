@@ -8,10 +8,12 @@ export function processFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
   filterSettings: FilterSettings,
-  isBackCamera?: boolean
+  isBackCamera?: boolean,
+  providedImageData?: ImageData
 ): void {
   // Safety check inputs
-  if (!video || !canvas) return;
+  if (!canvas) return;
+  if (!video && !providedImageData) return;
   
   // Extract settings with defaults for any missing or invalid values
   const dotSize = filterSettings.dotSize <= 0 ? 5 : filterSettings.dotSize;
@@ -28,92 +30,100 @@ export function processFrame(
   if (!ctx) return;
   
   try {
-    // Ensure video has valid dimensions before proceeding
-    if (!video.videoWidth || !video.videoHeight) {
-      // Video might not be ready yet, just clear canvas
+    // If we're dealing with a video stream (not an uploaded image)
+    let imageData: ImageData;
+    
+    if (providedImageData) {
+      // If image data was provided directly (for uploaded images)
+      imageData = providedImageData;
+    } else {
+      // We're processing a video stream
+      // Ensure video has valid dimensions before proceeding
+      if (!video.videoWidth || !video.videoHeight) {
+        // Video might not be ready yet, just clear canvas
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      
+      // Detect if device is mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      // Handle orientation and dimensions
+      let videoWidth = video.videoWidth;
+      let videoHeight = video.videoHeight;
+      
+      // Check if we need to adjust for portrait mode on mobile
+      const isPortrait = isMobile && window.innerHeight > window.innerWidth;
+      
+      // Set fixed dimensions for canvas based on container
+      const canvasContainer = document.getElementById('canvas-container');
+      const containerWidth = canvasContainer?.clientWidth || window.innerWidth;
+      const containerHeight = canvasContainer?.clientHeight || window.innerHeight * 0.6;
+      
+      // Reset any previous transformations
+      canvas.style.transform = '';
+      
+      // Set canvas to match container size exactly
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      
+      // Clear any position styling that might interfere
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      
+      // Clear the canvas
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      return;
-    }
-    
-    // Detect if device is mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    // Handle orientation and dimensions
-    let videoWidth = video.videoWidth;
-    let videoHeight = video.videoHeight;
-    
-    // Check if we need to adjust for portrait mode on mobile
-    const isPortrait = isMobile && window.innerHeight > window.innerWidth;
-    
-    // Set fixed dimensions for canvas based on container
-    const canvasContainer = document.getElementById('canvas-container');
-    const containerWidth = canvasContainer?.clientWidth || window.innerWidth;
-    const containerHeight = canvasContainer?.clientHeight || window.innerHeight * 0.6;
-    
-    // Reset any previous transformations
-    canvas.style.transform = '';
-    
-    // Set canvas to match container size exactly
-    canvas.width = containerWidth;
-    canvas.height = containerHeight;
-    
-    // Clear any position styling that might interfere
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    
-    // Clear the canvas
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Save context for transformations
-    ctx.save();
-    
-    // Handle orientation for mobile devices
-    if (isMobile && isBackCamera && !isIOS) {
-      // Many Android back cameras need horizontal flipping
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    
-    // Draw the original video to get pixel data
-    // Calculate how to fit the video while preserving aspect ratio
-    const videoRatio = video.videoWidth / video.videoHeight;
-    const canvasRatio = canvas.width / canvas.height;
-    
-    let drawWidth = canvas.width;
-    let drawHeight = canvas.height;
-    let offsetX = 0;
-    let offsetY = 0;
-    
-    // If the video and canvas have different aspect ratios, we need to adjust
-    if (videoRatio > canvasRatio) {
-        // Video is wider than canvas - fit to height
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * videoRatio;
-        offsetX = (canvas.width - drawWidth) / 2;
-    } else {
-        // Video is taller than canvas - fit to width
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / videoRatio;
-        offsetY = (canvas.height - drawHeight) / 2;
-    }
-    
-    // Draw video centered in canvas
-    ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
-    
-    // Restore context to remove transformations before further processing
-    ctx.restore();
-    
-    // Get image data to process
-    let imageData;
-    try {
-      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    } catch (err) {
-      console.error("Failed to get image data:", err);
-      return;
+      
+      // Save context for transformations
+      ctx.save();
+      
+      // Handle orientation for mobile devices
+      if (isMobile && isBackCamera && !isIOS) {
+        // Many Android back cameras need horizontal flipping
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      // Draw the original video to get pixel data
+      // Calculate how to fit the video while preserving aspect ratio
+      const videoRatio = video.videoWidth / video.videoHeight;
+      const canvasRatio = canvas.width / canvas.height;
+      
+      let drawWidth = canvas.width;
+      let drawHeight = canvas.height;
+      let offsetX = 0;
+      let offsetY = 0;
+      
+      // If the video and canvas have different aspect ratios, we need to adjust
+      if (videoRatio > canvasRatio) {
+          // Video is wider than canvas - fit to height
+          drawHeight = canvas.height;
+          drawWidth = drawHeight * videoRatio;
+          offsetX = (canvas.width - drawWidth) / 2;
+      } else {
+          // Video is taller than canvas - fit to width
+          drawWidth = canvas.width;
+          drawHeight = drawWidth / videoRatio;
+          offsetY = (canvas.height - drawHeight) / 2;
+      }
+      
+      // Draw video centered in canvas
+      ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      
+      // Restore context to remove transformations before further processing
+      ctx.restore();
+      
+      // Get image data to process
+      try {
+        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      } catch (err) {
+        console.error("Failed to get image data:", err);
+        return;
+      }
     }
     
     // Apply effects to image data
