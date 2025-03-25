@@ -119,16 +119,43 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
       setStream(newStream);
       
       if (videoRef && videoRef.current) {
-        videoRef.current.srcObject = newStream;
+        // Configure video element for optimal initialization
+        const videoEl = videoRef.current;
+        videoEl.muted = true; // Must be muted for autoplay to work reliably
+        videoEl.playsInline = true; // Needed for iOS
+        videoEl.autoplay = true; // Try to start playing immediately
         
-        // Ensure video element is ready for playback
-        videoRef.current.onloadedmetadata = () => {
+        // Set specific attributes that help ensure proper initialization
+        videoEl.setAttribute('playsinline', 'true'); // Additional iOS support
+        videoEl.setAttribute('webkit-playsinline', 'true'); // Safari support
+        
+        // Assign the stream to the video element
+        videoEl.srcObject = newStream;
+        
+        // Set up multiple event listeners to ensure video starts properly
+        videoEl.onloadedmetadata = () => {
+          console.log('Video loadedmetadata event fired, dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
           if (videoRef.current) {
             videoRef.current.play().catch(e => {
-              console.error('Error playing video:', e);
+              console.error('Error playing video on loadedmetadata:', e);
             });
           }
         };
+        
+        // Additional event handlers for more reliable initialization
+        videoEl.onloadeddata = () => {
+          console.log('Video loadeddata event fired, dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
+          // Try playing again if dimensions are now available
+          if (videoEl.videoWidth === 0) {
+            console.log('Video still not ready on loadeddata event, trying play() again');
+            videoEl.play().catch(e => console.error('Play error on loadeddata:', e));
+          }
+        };
+        
+        // Attempt to play immediately as well
+        videoEl.play().catch(e => {
+          console.log('Initial play() attempt failed, will retry on events:', e);
+        });
       }
       
       // Store the current device ID and facing mode information

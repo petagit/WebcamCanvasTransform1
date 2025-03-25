@@ -338,8 +338,25 @@ export default function Webcam({
     
     const renderFrame = () => {
       if (videoRef.current && canvasRef.current && isCameraActive && !uploadedImageMode) {
-        // If video is fully initialized with dimensions, process the frame
-        if (videoRef.current.videoWidth && videoRef.current.videoHeight) {
+        // Check video readiness using both dimensions and readyState
+        // readyState: 0 = HAVE_NOTHING, 1 = HAVE_METADATA, 2 = HAVE_CURRENT_DATA, 
+        // 3 = HAVE_FUTURE_DATA, 4 = HAVE_ENOUGH_DATA
+        const hasValidDimensions = videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0;
+        const readyState = videoRef.current.readyState;
+        
+        // Log detailed video element state for debugging
+        if (readyState < 2 || !hasValidDimensions) {
+          console.log("Video state check:", {
+            readyState,
+            dimensions: `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`,
+            videoComplete: readyState >= 4,
+            paused: videoRef.current.paused,
+            muted: videoRef.current.muted
+          });
+        }
+        
+        // If video is fully initialized with dimensions and has enough data, process the frame
+        if (hasValidDimensions && readyState >= 2) {
           // Clear any pending ready check since video is now ready
           if (videoReadyCheck) {
             clearTimeout(videoReadyCheck);
@@ -353,11 +370,18 @@ export default function Webcam({
             filterSettings,
             isBackCamera
           );
+          
+          // If this is the first time we've successfully processed a frame, notify parent
+          if (showPlaceholder) {
+            setShowPlaceholder(false);
+            onCameraReady();
+          }
         } else {
-          // Video doesn't have dimensions yet
+          // Video doesn't have dimensions yet or doesn't have enough data
           // If we don't have a check timer running, start one
           if (!videoReadyCheck) {
-            console.log("Video not yet ready, setting up initialization check...");
+            console.log("Video not yet ready, setting up initialization check...", 
+              `readyState: ${readyState}, dimensions: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
             
             // Show "Initializing camera" message on canvas
             if (canvasRef.current) {
@@ -372,13 +396,18 @@ export default function Webcam({
                 ctx.font = '16px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('Initializing camera...', canvasRef.current.width/2, canvasRef.current.height/2);
+                
+                // Add readyState display for debugging
+                ctx.font = '12px sans-serif';
+                ctx.fillText(`Camera state: ${readyState}/4, Dimensions: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`, 
+                  canvasRef.current.width/2, canvasRef.current.height/2 + 30);
               }
             }
             
             // Check if camera is ready after a brief delay
             videoReadyCheck = setTimeout(() => {
               videoReadyCheck = null;
-              if (videoRef.current && !videoRef.current.videoWidth) {
+              if (videoRef.current && (!videoRef.current.videoWidth || videoRef.current.readyState < 2)) {
                 console.log("Camera still not ready, attempting to force play...");
                 // Try to directly play the video element to trigger loading
                 videoRef.current.play().catch(err => {

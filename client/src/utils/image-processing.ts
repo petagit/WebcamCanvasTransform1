@@ -67,9 +67,28 @@ export function processFrame(
       // Ensure video has valid dimensions before proceeding
       if (!video.videoWidth || !video.videoHeight) {
         console.warn("Video not ready yet, dimensions:", video.videoWidth, "x", video.videoHeight);
-        // Video might not be ready yet, just clear canvas
+        
+        // Try to get video dimensions once more by checking readyState
+        // ReadyState 3 or 4 means enough data has been loaded to determine dimensions
+        if (video.readyState < 2) {
+          console.log("Video still loading, readyState:", video.readyState);
+        }
+        
+        // Add a helpful loading message to the canvas
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add loading text
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Initializing camera...', canvas.width / 2, canvas.height / 2);
+        
+        // Show readyState to help debug
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`Camera state: ${video.readyState}/4`, canvas.width / 2, canvas.height / 2 + 30);
+        
         return;
       }
       
