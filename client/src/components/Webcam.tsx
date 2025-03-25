@@ -40,6 +40,7 @@ export default function Webcam({
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
   const [uploadedVideoElement, setUploadedVideoElement] = useState<HTMLVideoElement | null>(null);
   const [isProcessingVideo, setIsProcessingVideo] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // For loading indicator during image/video processing
   const isMobile = useIsMobile();
   
   const {
@@ -76,6 +77,9 @@ export default function Webcam({
       console.error("Missing canvas, video element, or video URL");
       return;
     }
+    
+    // Show loading indicator
+    setIsProcessing(true);
     
     try {
       // If webcam is active, stop it
@@ -143,6 +147,7 @@ export default function Webcam({
           requestAnimationFrame(processVideoFrame);
         } else {
           setIsProcessingVideo(false);
+          setIsProcessing(false); // Hide loading indicator
           // Capture the final processed frame for comparison
           const processedImageUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
           console.log("Created processed frame with dimensions:", 
@@ -154,6 +159,7 @@ export default function Webcam({
     } catch (error) {
       console.error("Error processing video frame:", error);
       setIsProcessingVideo(false);
+      setIsProcessing(false); // Clear loading indicator on error
     }
   };
   
@@ -186,6 +192,9 @@ export default function Webcam({
       console.error("Missing canvas or original image URL");
       return;
     }
+    
+    // Show loading indicator
+    setIsProcessing(true);
     
     try {
       console.log("Original image URL:", originalImageUrl.substring(0, 50) + "...");
@@ -273,6 +282,9 @@ export default function Webcam({
                 // Set uploaded image mode to true to keep showing the processed image
                 setUploadedImageMode(true);
                 setShowPlaceholder(false);
+                
+                // Hide loading indicator
+                setIsProcessing(false);
               } else {
                 console.error("Could not create backup canvas context");
                 setCameraError("Failed to process image. Please try again.");
