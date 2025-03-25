@@ -97,7 +97,7 @@ export default function BeforeAfterSlider({
         className="absolute inset-0 overflow-hidden"
         style={{ width: `${sliderPosition}%` }}
       >
-        <div className="w-full h-full">
+        <div className="w-full h-full relative">
           <img 
             src={afterImage} 
             alt="After" 

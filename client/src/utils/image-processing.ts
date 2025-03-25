@@ -184,7 +184,12 @@ export function processFrame(
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    
+    // Use a 2d rendering context optimized for frequent pixel manipulation
+    const tempCtx = tempCanvas.getContext('2d', { 
+      willReadFrequently: true,
+      alpha: false // We don't need alpha channel for dot effect processing
+    });
     
     if (!tempCtx) {
       console.error("Failed to get temp canvas context");
@@ -193,7 +198,7 @@ export function processFrame(
       return;
     }
     
-    console.log("Created temp canvas:", tempCanvas.width, "x", tempCanvas.height);
+    console.log("Created temp canvas with size:", tempCanvas.width, "x", tempCanvas.height);
     
     try {
       // Put processed image on temp canvas
