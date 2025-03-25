@@ -5,7 +5,7 @@ import type { DotShape, FilterSettings } from "@/pages/Home";
  * Improved with extensive error handling for mobile compatibility and orientation
  */
 export function processFrame(
-  video: HTMLVideoElement,
+  video: HTMLVideoElement | null,
   canvas: HTMLCanvasElement,
   filterSettings: FilterSettings,
   isBackCamera?: boolean,
