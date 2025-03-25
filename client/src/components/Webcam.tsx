@@ -255,7 +255,7 @@ export default function Webcam({
         }
       };
       
-      img.onerror = (err) => {
+      img.onerror = (err: Event) => {
         console.error("Error loading image:", err);
         setCameraError("Failed to load the image. Please try again.");
       };
@@ -562,7 +562,7 @@ export default function Webcam({
                               // Process the image immediately
                               if (canvasRef.current) {
                                 // Create an image element from the file
-                                const img = new Image(0, 0);
+                                const img = document.createElement('img');
                                 img.onload = () => {
                                   console.log("Image loaded with dimensions:", img.width, "x", img.height);
                                   
@@ -592,8 +592,8 @@ export default function Webcam({
                                   }
                                 };
                                 
-                                img.onerror = (err) => {
-                                  console.error("Error loading image:", err);
+                                img.onerror = (event: Event) => {
+                                  console.error("Error loading image:", event);
                                   setCameraError("Failed to load the image. Please try a different file.");
                                 };
                                 
