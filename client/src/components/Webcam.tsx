@@ -237,6 +237,15 @@ export default function Webcam({
                 
                 // Show before/after comparison
                 setShowBeforeAfterComparison(true);
+                
+                // Stop camera if it's active to ensure we stay in image mode
+                if (isCameraActive) {
+                  stopCamera();
+                }
+                
+                // Set uploaded image mode to true to keep showing the processed image
+                setUploadedImageMode(true);
+                setShowPlaceholder(false);
               } else {
                 console.error("Could not create backup canvas context");
                 setCameraError("Failed to process image. Please try again.");
@@ -255,8 +264,8 @@ export default function Webcam({
         }
       };
       
-      img.onerror = (err: Event) => {
-        console.error("Error loading image:", err);
+      img.onerror = () => {
+        console.error("Error loading image");
         setCameraError("Failed to load the image. Please try again.");
       };
       
@@ -588,12 +597,27 @@ export default function Webcam({
                                       // Set uploaded image mode
                                       setUploadedImageMode(true);
                                       setShowPlaceholder(false);
+                                      
+                                      // Process the image immediately with filters
+                                      const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                                      processFrame(
+                                        document.createElement('video'), // Dummy video element
+                                        canvasRef.current,
+                                        filterSettings,
+                                        false,
+                                        imageData
+                                      );
+                                      
+                                      // Store the processed image for the slider
+                                      const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+                                      setAfterImage(processedImageUrl);
+                                      setShowBeforeAfterComparison(true);
                                     }
                                   }
                                 };
                                 
-                                img.onerror = (event: Event) => {
-                                  console.error("Error loading image:", event);
+                                img.onerror = () => {
+                                  console.error("Error loading image");
                                   setCameraError("Failed to load the image. Please try a different file.");
                                 };
                                 
@@ -656,8 +680,8 @@ export default function Webcam({
                                 setUploadedVideoElement(videoElement);
                               };
                               
-                              videoElement.onerror = (err) => {
-                                console.error("Error loading video:", err);
+                              videoElement.onerror = () => {
+                                console.error("Error loading video");
                                 setCameraError("This video format is not supported. Please try an MP4 file.");
                               };
                             }
