@@ -30,6 +30,11 @@ export function processFrame(
     return;
   }
   
+  // Early return for video-related operations if video is null
+  if (!video && !providedImageData) {
+    return;
+  }
+  
   // Extract settings with defaults for any missing or invalid values
   const dotSize = filterSettings.dotSize <= 0 ? 5 : filterSettings.dotSize;
   const contrast = filterSettings.contrast;
@@ -49,7 +54,7 @@ export function processFrame(
   
   try {
     // If we're dealing with a video stream (not an uploaded image)
-    let imageData: ImageData;
+    let imageData: ImageData | null = null;
     
     if (providedImageData) {
       // If image data was provided directly (for uploaded images)
@@ -60,18 +65,22 @@ export function processFrame(
       // We just need to clear it before applying effects
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
+    } else if (video) {
       // We're processing a video stream
       console.log("Processing video stream");
       
       // Ensure video has valid dimensions before proceeding
-      if (!video.videoWidth || !video.videoHeight) {
-        console.warn("Video not ready yet, dimensions:", video.videoWidth, "x", video.videoHeight);
-        
-        // Try to get video dimensions once more by checking readyState
-        // ReadyState 3 or 4 means enough data has been loaded to determine dimensions
-        if (video.readyState < 2) {
-          console.log("Video still loading, readyState:", video.readyState);
+      if (!video || !video.videoWidth || !video.videoHeight) {
+        if (video) {
+          console.warn("Video not ready yet, dimensions:", video.videoWidth, "x", video.videoHeight);
+          
+          // Try to get video dimensions once more by checking readyState
+          // ReadyState 3 or 4 means enough data has been loaded to determine dimensions
+          if (video.readyState < 2) {
+            console.log("Video still loading, readyState:", video.readyState);
+          }
+        } else {
+          console.warn("Video is null");
         }
         
         // Add a helpful loading message to the canvas
@@ -87,7 +96,7 @@ export function processFrame(
         
         // Show readyState to help debug
         ctx.font = '12px sans-serif';
-        ctx.fillText(`Camera state: ${video.readyState}/4`, canvas.width / 2, canvas.height / 2 + 30);
+        ctx.fillText(`Camera state: ${video ? video.readyState : 'N/A'}/4`, canvas.width / 2, canvas.height / 2 + 30);
         
         return;
       }
@@ -175,6 +184,12 @@ export function processFrame(
       }
     }
     
+    // Make sure we have image data before proceeding
+    if (!imageData) {
+      console.error("No image data available");
+      return;
+    }
+    
     // Apply effects to image data
     const data = imageData.data;
     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
@@ -210,10 +225,11 @@ export function processFrame(
       alpha: false // We don't need alpha channel for dot effect processing
     });
     
-    if (!tempCtx) {
-      console.error("Failed to get temp canvas context");
-      // If we can't get context, just render the processed image
-      ctx.putImageData(imageData, 0, 0);
+    if (!tempCtx || !imageData) {
+      console.error("Failed to get temp canvas context or missing image data");
+      // If we can't get context, just render a black screen
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       return;
     }
     
@@ -231,7 +247,13 @@ export function processFrame(
       console.log("Cleared original canvas for dot effect");
     } catch (err) {
       console.error("Error preparing canvases:", err);
-      ctx.putImageData(imageData, 0, 0);
+      // Draw an error message instead of using putImageData
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Error preparing canvas', canvas.width / 2, canvas.height / 2);
       return;
     }
     

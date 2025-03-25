@@ -172,7 +172,7 @@ export default function SimpleMobileCamera({
       setUploadedImageUrl(imageUrl);
       
       // Process the image
-      const img = new Image();
+      const img = document.createElement('img');
       img.onload = () => {
         if (canvasRef.current) {
           const canvas = canvasRef.current;
@@ -434,89 +434,265 @@ export default function SimpleMobileCamera({
   
   return (
     <div className="relative bg-black rounded-xl overflow-hidden shadow-lg">
-      {/* Camera Controls Header */}
-      <div className="absolute top-0 left-0 right-0 p-3 bg-black bg-opacity-50 flex justify-between z-10">
-        <h3 className="text-white font-medium">Camera</h3>
-        {isCameraActive && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="p-1 h-8 w-8 rounded-full"
-            onClick={toggleCamera}
-            disabled={isProcessing}
-          >
-            <FlipHorizontal className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
-      
-      {/* Video and Canvas Container */}
-      <div className="relative" style={{ minHeight: '300px' }}>
-        {/* Hidden Video Element */}
-        <video
-          ref={videoRef}
-          style={{ 
-            position: 'absolute',
-            width: '100%', 
-            height: '100%',
-            objectFit: 'cover',
-            visibility: 'hidden' 
-          }}
-          muted
-          playsInline
-          autoPlay
-        />
+      {/* Input Source Tabs */}
+      <Tabs
+        defaultValue="camera"
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value)}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="camera" className="flex items-center gap-1">
+            <Camera className="h-4 w-4" />
+            <span>Camera</span>
+          </TabsTrigger>
+          <TabsTrigger value="uploadImage" className="flex items-center gap-1">
+            <Image className="h-4 w-4" />
+            <span>Image</span>
+          </TabsTrigger>
+          <TabsTrigger value="uploadVideo" className="flex items-center gap-1">
+            <Video className="h-4 w-4" />
+            <span>Video</span>
+          </TabsTrigger>
+        </TabsList>
         
-        {/* Canvas for Processing */}
-        <canvas
-          ref={canvasRef}
-          style={{ 
-            position: 'absolute',
-            width: '100%', 
-            height: '100%',
-            objectFit: 'cover'
-          }}
-          width={640}
-          height={480}
-        />
-        
-        {/* Camera Placeholder when not active */}
-        {!isCameraActive && !isProcessing && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-90">
-            <Camera className="h-16 w-16 text-gray-400 mb-4" />
-            <Button
-              onClick={() => startCamera(false)}
-              className="mb-2"
-              disabled={isProcessing}
-            >
-              Start Camera
-            </Button>
-            {cameraError && (
-              <p className="text-red-500 text-sm text-center mt-2 px-4">
-                {cameraError}
-              </p>
+        {/* Camera Tab Content */}
+        <TabsContent value="camera" className="m-0">
+          {/* Camera Controls Header */}
+          <div className="p-3 bg-black bg-opacity-50 flex justify-between z-10">
+            <h3 className="text-white font-medium">Camera</h3>
+            {isCameraActive && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="p-1 h-8 w-8 rounded-full"
+                onClick={toggleCamera}
+                disabled={isProcessing}
+              >
+                <FlipHorizontal className="h-5 w-5" />
+              </Button>
             )}
           </div>
-        )}
-        
-        {/* Loading Indicator */}
-        {isProcessing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
-            <div className="h-8 w-8 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+          
+          {/* Video and Canvas Container */}
+          <div className="relative" style={{ minHeight: '300px' }}>
+            {/* Hidden Video Element */}
+            <video
+              ref={videoRef}
+              style={{ 
+                position: 'absolute',
+                width: '100%', 
+                height: '100%',
+                objectFit: 'cover',
+                visibility: 'hidden' 
+              }}
+              muted
+              playsInline
+              autoPlay
+            />
+            
+            {/* Canvas for Processing */}
+            <canvas
+              ref={canvasRef}
+              style={{ 
+                position: 'absolute',
+                width: '100%', 
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              width={640}
+              height={480}
+            />
+            
+            {/* Camera Placeholder when not active */}
+            {!isCameraActive && !isProcessing && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-90">
+                <Camera className="h-16 w-16 text-gray-400 mb-4" />
+                <Button
+                  onClick={() => startCamera(false)}
+                  className="mb-2"
+                  disabled={isProcessing}
+                >
+                  Start Camera
+                </Button>
+                {cameraError && (
+                  <p className="text-red-500 text-sm text-center mt-2 px-4">
+                    {cameraError}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Loading Indicator */}
+            {isProcessing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
+                <div className="h-8 w-8 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      
-      {/* Camera Controls */}
-      <div className="p-3 bg-gray-900 flex justify-center">
-        <Button
-          className="rounded-full h-14 w-14 bg-white hover:bg-gray-200"
-          onClick={captureImage}
-          disabled={!isCameraActive || isProcessing}
-        >
-          <div className="rounded-full h-12 w-12 border-2 border-gray-800"></div>
-        </Button>
-      </div>
+          
+          {/* Camera Controls */}
+          <div className="p-3 bg-gray-900 flex justify-center">
+            <Button
+              className="rounded-full h-14 w-14 bg-white hover:bg-gray-200"
+              onClick={captureImage}
+              disabled={!isCameraActive || isProcessing}
+            >
+              <div className="rounded-full h-12 w-12 border-2 border-gray-800"></div>
+            </Button>
+          </div>
+        </TabsContent>
+        
+        {/* Upload Image Tab Content */}
+        <TabsContent value="uploadImage" className="m-0">
+          <div className="p-3 bg-black bg-opacity-50">
+            <h3 className="text-white font-medium">Upload Image</h3>
+          </div>
+          
+          <div className="relative" style={{ minHeight: '300px' }}>
+            {/* Canvas for Processing */}
+            <canvas
+              ref={canvasRef}
+              style={{ 
+                position: 'absolute',
+                width: '100%', 
+                height: '100%',
+                objectFit: 'contain'
+              }}
+              width={640}
+              height={480}
+            />
+            
+            {/* Upload Placeholder */}
+            {!uploadedImageUrl && !isProcessing && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-90">
+                <Upload className="h-16 w-16 text-gray-400 mb-4" />
+                <input
+                  type="file"
+                  id="image-upload"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <Button className="mb-2" disabled={isProcessing}>
+                    Select Image
+                  </Button>
+                </label>
+              </div>
+            )}
+            
+            {/* Loading Indicator */}
+            {isProcessing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
+                <div className="h-8 w-8 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
+          
+          {/* Controls */}
+          <div className="p-3 bg-gray-900 flex justify-center">
+            <Button
+              onClick={saveProcessedResult}
+              disabled={!uploadedImageUrl || isProcessing}
+              className="rounded-full h-14 w-14 bg-white hover:bg-gray-200"
+            >
+              <div className="rounded-full h-12 w-12 border-2 border-gray-800"></div>
+            </Button>
+          </div>
+        </TabsContent>
+        
+        {/* Upload Video Tab Content */}
+        <TabsContent value="uploadVideo" className="m-0">
+          <div className="p-3 bg-black bg-opacity-50">
+            <h3 className="text-white font-medium">Upload Video</h3>
+          </div>
+          
+          <div className="relative" style={{ minHeight: '300px' }}>
+            {/* Hidden Video Element */}
+            <video
+              ref={uploadedVideoRef}
+              style={{ 
+                position: 'absolute',
+                width: '100%', 
+                height: '100%',
+                objectFit: 'contain',
+                visibility: 'hidden' 
+              }}
+              muted
+              playsInline
+              controls
+              loop
+            />
+            
+            {/* Canvas for Processing */}
+            <canvas
+              ref={canvasRef}
+              style={{ 
+                position: 'absolute',
+                width: '100%', 
+                height: '100%',
+                objectFit: 'contain'
+              }}
+              width={640}
+              height={480}
+            />
+            
+            {/* Upload Placeholder */}
+            {!uploadedVideoUrl && !isProcessing && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-90">
+                <Upload className="h-16 w-16 text-gray-400 mb-4" />
+                <input
+                  type="file"
+                  id="video-upload"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                />
+                <label htmlFor="video-upload" className="cursor-pointer">
+                  <Button className="mb-2" disabled={isProcessing}>
+                    Select Video
+                  </Button>
+                </label>
+              </div>
+            )}
+            
+            {/* Loading Indicator */}
+            {isProcessing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
+                <div className="h-8 w-8 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
+          
+          {/* Controls */}
+          <div className="p-3 bg-gray-900 flex justify-center space-x-4">
+            {uploadedVideoUrl && (
+              <>
+                <Button
+                  onClick={() => {
+                    if (uploadedVideoRef.current) {
+                      uploadedVideoRef.current.paused 
+                        ? uploadedVideoRef.current.play()
+                        : uploadedVideoRef.current.pause();
+                    }
+                  }}
+                  disabled={!uploadedVideoUrl || isProcessing}
+                  variant="outline"
+                >
+                  {uploadedVideoRef.current?.paused ? 'Play' : 'Pause'}
+                </Button>
+                <Button
+                  onClick={saveProcessedResult}
+                  disabled={!uploadedVideoUrl || isProcessing}
+                >
+                  Capture Frame
+                </Button>
+              </>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
