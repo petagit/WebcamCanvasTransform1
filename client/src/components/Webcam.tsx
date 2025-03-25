@@ -35,6 +35,8 @@ export default function Webcam({
   const [uploadedImageMode, setUploadedImageMode] = useState(false);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [showBeforeAfterComparison, setShowBeforeAfterComparison] = useState(false);
+  const [beforeImage, setBeforeImage] = useState<string | null>(null);
+  const [afterImage, setAfterImage] = useState<string | null>(null);
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
   const [uploadedVideoElement, setUploadedVideoElement] = useState<HTMLVideoElement | null>(null);
   const [isProcessingVideo, setIsProcessingVideo] = useState(false);
@@ -65,9 +67,7 @@ export default function Webcam({
     }
   };
 
-  // State for before/after images
-  const [beforeImage, setBeforeImage] = useState<string | null>(null);
-  const [afterImage, setAfterImage] = useState<string | null>(null);
+  // This comment intentionally left blank (removing duplicate state declaration)
 
   // Process uploaded video with current filter settings
   const processUploadedVideo = () => {
@@ -519,9 +519,10 @@ export default function Webcam({
               <div className="mt-5">
                 <h3 className="text-white font-medium mb-2">Input Source</h3>
                 <Tabs defaultValue="webcam" className="w-full">
-                  <TabsList className="w-full grid grid-cols-2">
+                  <TabsList className="w-full grid grid-cols-3">
                     <TabsTrigger value="webcam">Webcam</TabsTrigger>
-                    <TabsTrigger value="upload">Upload Video</TabsTrigger>
+                    <TabsTrigger value="image">Upload Image</TabsTrigger>
+                    <TabsTrigger value="video">Upload Video</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="webcam" className="py-2">
@@ -533,7 +534,92 @@ export default function Webcam({
                     </Button>
                   </TabsContent>
                   
-                  <TabsContent value="upload" className="py-2">
+                  <TabsContent value="image" className="py-2">
+                    <div className="space-y-2">
+                      <div className="text-gray-300 text-sm">
+                        Select JPG or PNG image
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="w-full flex items-center justify-center space-x-2"
+                        onClick={() => {
+                          // Handle image file upload
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/jpeg,image/png,image/jpg';
+                          input.click();
+                          
+                          input.onchange = (e) => {
+                            const target = e.target as HTMLInputElement;
+                            if (target.files && target.files[0]) {
+                              const file = target.files[0];
+                              console.log("Uploading image file:", file.name);
+                              
+                              // Create a URL from the file
+                              const imageUrl = URL.createObjectURL(file);
+                              setOriginalImageUrl(imageUrl);
+                              
+                              // Process the image immediately
+                              if (canvasRef.current) {
+                                // Create an image element from the file
+                                const img = new Image();
+                                img.onload = () => {
+                                  console.log("Image loaded with dimensions:", img.width, "x", img.height);
+                                  
+                                  if (canvasRef.current) {
+                                    // Store the original image for the slider
+                                    setBeforeImage(imageUrl);
+                                    
+                                    // Display the image on the canvas
+                                    const ctx = canvasRef.current.getContext('2d');
+                                    if (ctx) {
+                                      // Set canvas dimensions to match image
+                                      canvasRef.current.width = img.width;
+                                      canvasRef.current.height = img.height;
+                                      
+                                      // Draw the image on the canvas
+                                      ctx.drawImage(img, 0, 0);
+                                      
+                                      // Stop camera if it's active
+                                      if (isCameraActive) {
+                                        stopCamera();
+                                      }
+                                      
+                                      // Set uploaded image mode
+                                      setUploadedImageMode(true);
+                                      setShowPlaceholder(false);
+                                    }
+                                  }
+                                };
+                                
+                                img.onerror = (err) => {
+                                  console.error("Error loading image:", err);
+                                  setCameraError("Failed to load the image. Please try a different file.");
+                                };
+                                
+                                img.src = imageUrl;
+                              }
+                            }
+                          };
+                        }}
+                      >
+                        <Upload className="h-5 w-5" />
+                        <span>Upload Image</span>
+                      </Button>
+                      
+                      {originalImageUrl && (
+                        <Button 
+                          className="w-full bg-app-blue hover:bg-blue-600 mt-2"
+                          onClick={processUploadedImage}
+                        >
+                          <Wand2 className="h-5 w-5 mr-2" />
+                          Apply Filters
+                        </Button>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="video" className="py-2">
                     <div className="space-y-2">
                       <div className="text-gray-300 text-sm">
                         Select MP4 file
