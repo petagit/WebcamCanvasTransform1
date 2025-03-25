@@ -144,7 +144,7 @@ export default function Webcam({
         } else {
           setIsProcessingVideo(false);
           // Capture the final processed frame for comparison
-          const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+          const processedImageUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
           console.log("Created processed frame with dimensions:", 
             canvasRef.current.width, "x", canvasRef.current.height);
           setAfterImage(processedImageUrl);
@@ -173,7 +173,7 @@ export default function Webcam({
       );
       
       console.log("Creating thumbnail with dimensions:", tempCanvas.width, "x", tempCanvas.height);
-      return tempCanvas.toDataURL('image/jpeg');
+      return tempCanvas.toDataURL('image/jpeg', 0.95);
     }
     
     return '';
@@ -453,7 +453,8 @@ export default function Webcam({
     if (!canvasRef.current) return;
     
     try {
-      const dataUrl = canvasRef.current.toDataURL("image/jpeg");
+      const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.95);
+      console.log("Captured image dimensions:", canvasRef.current.width, "x", canvasRef.current.height);
       onCaptureImage(dataUrl);
     } catch (error) {
       console.error("Error capturing image:", error);
