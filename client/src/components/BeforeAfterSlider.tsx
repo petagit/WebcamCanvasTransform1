@@ -85,6 +85,7 @@ export default function BeforeAfterSlider({
           src={beforeImage} 
           alt="Before" 
           className="w-full h-full object-contain bg-black"
+          onLoad={(e) => console.log("Before image loaded:", (e.target as HTMLImageElement).width, "x", (e.target as HTMLImageElement).height)}
         />
         <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-sm">
           Original
@@ -96,13 +97,16 @@ export default function BeforeAfterSlider({
         className="absolute inset-0 overflow-hidden"
         style={{ width: `${sliderPosition}%` }}
       >
-        <img 
-          src={afterImage} 
-          alt="After" 
-          className="w-full h-full object-contain bg-black"
-        />
-        <div className="absolute top-4 left-4 bg-blue-600/70 text-white px-2 py-1 rounded text-sm">
-          Processed
+        <div className="w-full h-full">
+          <img 
+            src={afterImage} 
+            alt="After" 
+            className="w-full h-full object-contain bg-black"
+            onLoad={(e) => console.log("After image loaded:", (e.target as HTMLImageElement).width, "x", (e.target as HTMLImageElement).height)}
+          />
+          <div className="absolute top-4 left-4 bg-blue-600/70 text-white px-2 py-1 rounded text-sm">
+            Processed
+          </div>
         </div>
       </div>
       

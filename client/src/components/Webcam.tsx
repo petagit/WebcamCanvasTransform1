@@ -644,15 +644,7 @@ export default function Webcam({
                         <span>Upload Image</span>
                       </Button>
                       
-                      {originalImageUrl && (
-                        <Button 
-                          className="w-full bg-app-blue hover:bg-blue-600 mt-2"
-                          onClick={processUploadedImage}
-                        >
-                          <Wand2 className="h-5 w-5 mr-2" />
-                          Apply Filters
-                        </Button>
-                      )}
+                      {/* Apply Filters button is in the footer */}
                     </div>
                   </TabsContent>
 
@@ -705,15 +697,7 @@ export default function Webcam({
                         <span>Upload Video</span>
                       </Button>
                       
-                      {uploadedVideoUrl && uploadedVideoElement && !isProcessingVideo && (
-                        <Button 
-                          className="w-full bg-app-blue hover:bg-blue-600 mt-2"
-                          onClick={processUploadedVideo}
-                        >
-                          <Wand2 className="h-5 w-5 mr-2" />
-                          Apply Filters
-                        </Button>
-                      )}
+                      {/* Apply Filters button is in the footer */}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -862,6 +846,16 @@ export default function Webcam({
             <Button
               className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700"
               onClick={processUploadedImage}
+            >
+              <Wand2 className="h-5 w-5" />
+              <span>Apply Filters</span>
+            </Button>
+          )}
+          
+          {uploadedVideoUrl && uploadedVideoElement && !isProcessingVideo && (
+            <Button
+              className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700"
+              onClick={processUploadedVideo}
             >
               <Wand2 className="h-5 w-5" />
               <span>Apply Filters</span>
