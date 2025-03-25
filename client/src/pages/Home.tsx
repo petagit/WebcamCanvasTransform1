@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Webcam from "@/components/Webcam";
+import SimpleMobileCamera from "@/components/SimpleMobileCamera";
 import ControlPanel from "@/components/ControlPanel";
 import StatusBar from "@/components/StatusBar";
 import PreviewModal from "@/components/PreviewModal";
 import HelpModal from "@/components/HelpModal";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type CapturedItem = {
   id: string;
@@ -35,6 +37,7 @@ export default function Home() {
   const [previewItem, setPreviewItem] = useState<CapturedItem | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const isMobile = useIsMobile();
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
     dotSize: 10,
     contrast: 1.5,
@@ -95,13 +98,21 @@ export default function Home() {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Webcam 
-              onCameraReady={() => setCameraReady(true)}
-              onCaptureImage={handleCaptureImage}
-              onRecordVideo={handleRecordVideo}
-              onStreamingChange={setIsStreaming}
-              filterSettings={filterSettings}
-            />
+            {isMobile ? (
+              <SimpleMobileCamera
+                onCameraReady={() => setCameraReady(true)}
+                onCaptureImage={handleCaptureImage}
+                filterSettings={filterSettings}
+              />
+            ) : (
+              <Webcam 
+                onCameraReady={() => setCameraReady(true)}
+                onCaptureImage={handleCaptureImage}
+                onRecordVideo={handleRecordVideo}
+                onStreamingChange={setIsStreaming}
+                filterSettings={filterSettings}
+              />
+            )}
           </div>
           
           <div className="lg:col-span-1 space-y-6">
