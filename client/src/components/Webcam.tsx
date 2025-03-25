@@ -86,8 +86,11 @@ export default function Webcam({
       // Set uploaded image mode to prevent webcam rendering
       setUploadedImageMode(true);
       
-      // Store the original video for comparison
-      setBeforeImage(createThumbnailFromVideo(uploadedVideoElement));
+      // Create a proper-sized thumbnail from the first frame of the video
+      const thumbnail = createThumbnailFromVideo(uploadedVideoElement);
+      console.log("Created thumbnail with dimensions:", 
+        uploadedVideoElement.videoWidth, "x", uploadedVideoElement.videoHeight);
+      setBeforeImage(thumbnail);
       
       // Set up video processing loop
       setIsProcessingVideo(true);
@@ -142,6 +145,8 @@ export default function Webcam({
           setIsProcessingVideo(false);
           // Capture the final processed frame for comparison
           const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+          console.log("Created processed frame with dimensions:", 
+            canvasRef.current.width, "x", canvasRef.current.height);
           setAfterImage(processedImageUrl);
           setShowBeforeAfterComparison(true);
         }
@@ -160,7 +165,14 @@ export default function Webcam({
     const tempCtx = tempCanvas.getContext('2d');
     
     if (tempCtx) {
-      tempCtx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+      // Make sure we're drawing at the correct size and position
+      tempCtx.drawImage(
+        videoElement, 
+        0, 0, videoElement.videoWidth, videoElement.videoHeight,
+        0, 0, tempCanvas.width, tempCanvas.height
+      );
+      
+      console.log("Creating thumbnail with dimensions:", tempCanvas.width, "x", tempCanvas.height);
       return tempCanvas.toDataURL('image/jpeg');
     }
     

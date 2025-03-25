@@ -93,14 +93,13 @@ export default function BeforeAfterSlider({
       
       {/* After image (shown based on slider position) */}
       <div 
-        className="absolute inset-0 w-full h-full overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         style={{ width: `${sliderPosition}%` }}
       >
         <img 
           src={afterImage} 
           alt="After" 
-          className="absolute inset-0 w-[100vw] max-w-none h-full object-contain bg-black"
-          style={{ left: 0 }}
+          className="w-full h-full object-contain bg-black"
         />
         <div className="absolute top-4 left-4 bg-blue-600/70 text-white px-2 py-1 rounded text-sm">
           Processed
