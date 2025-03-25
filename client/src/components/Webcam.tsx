@@ -694,8 +694,11 @@ export default function Webcam({
                 <>
                   <div className="text-red-500 font-medium mb-4">{cameraError}</div>
                   <div className="text-white text-sm mb-4">
-                    On mobile devices, you may need to use your device settings to allow camera access,
-                    or try using a different browser.
+                    On mobile devices:
+                    1. Ensure camera permissions are enabled in your browser settings
+                    2. Try refreshing the page if camera doesn't initialize
+                    3. Make sure your browser is up to date
+                    4. Allow the camera permission prompt when it appears
                   </div>
                 </>
               ) : null}

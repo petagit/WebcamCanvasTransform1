@@ -95,10 +95,11 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
         const deviceId = currentDeviceId || cameras[0].deviceId;
         constraints = {
           video: { 
-            deviceId: { ideal: deviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30, min: 15 }  // Add frameRate constraint for better initialization
+            deviceId: { exact: deviceId },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, min: 15 },
+            facingMode: isMobileDevice() ? 'environment' : undefined
           },
           audio: false
         };
