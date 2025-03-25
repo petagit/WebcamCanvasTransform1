@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface BeforeAfterSliderProps {
   beforeImage: string; // Original image URL
@@ -13,8 +14,21 @@ export default function BeforeAfterSlider({
   className
 }: BeforeAfterSliderProps) {
   const [sliderPosition, setSliderPosition] = useState(50);
+  const [imagesLoaded, setImagesLoaded] = useState<{before: boolean, after: boolean}>({
+    before: false, 
+    after: false
+  });
+  
   const containerRef = useRef<HTMLDivElement>(null);
+  const beforeImgRef = useRef<HTMLImageElement>(null);
+  const afterImgRef = useRef<HTMLImageElement>(null);
   const isDragging = useRef(false);
+
+  // Reset loaded state when image sources change
+  useEffect(() => {
+    setImagesLoaded({before: false, after: false});
+    console.log("Image sources changed, resetting loaded state.");
+  }, [beforeImage, afterImage]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
@@ -55,6 +69,18 @@ export default function BeforeAfterSlider({
     setSliderPosition(percentage);
   };
 
+  const handleImageLoad = (type: 'before' | 'after', e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement;
+    console.log(`${type} image loaded:`, img.naturalWidth, "x", img.naturalHeight);
+    
+    setImagesLoaded(prev => ({ ...prev, [type]: true }));
+    
+    // Log when both images are loaded
+    if ((type === 'after' && imagesLoaded.before) || (type === 'before' && imagesLoaded.after)) {
+      console.log("Both images are now loaded");
+    }
+  };
+
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -69,6 +95,9 @@ export default function BeforeAfterSlider({
     };
   }, []);
 
+  // Are both images fully loaded?
+  const isFullyLoaded = imagesLoaded.before && imagesLoaded.after;
+
   return (
     <div 
       ref={containerRef}
@@ -82,10 +111,12 @@ export default function BeforeAfterSlider({
       {/* Before image (shown fully) */}
       <div className="absolute inset-0 w-full h-full">
         <img 
+          ref={beforeImgRef}
           src={beforeImage} 
           alt="Before" 
           className="w-full h-full object-contain bg-black"
-          onLoad={(e) => console.log("Before image loaded:", (e.target as HTMLImageElement).width, "x", (e.target as HTMLImageElement).height)}
+          onLoad={(e) => handleImageLoad('before', e)}
+          crossOrigin="anonymous"
         />
         <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-sm">
           Original
@@ -97,18 +128,30 @@ export default function BeforeAfterSlider({
         className="absolute inset-0 overflow-hidden"
         style={{ width: `${sliderPosition}%` }}
       >
-        <div className="w-full h-full relative">
+        <div className="w-full h-full">
           <img 
+            ref={afterImgRef}
             src={afterImage} 
             alt="After" 
             className="w-full h-full object-contain bg-black"
-            onLoad={(e) => console.log("After image loaded:", (e.target as HTMLImageElement).width, "x", (e.target as HTMLImageElement).height)}
+            onLoad={(e) => handleImageLoad('after', e)}
+            crossOrigin="anonymous"
           />
           <div className="absolute top-4 left-4 bg-blue-600/70 text-white px-2 py-1 rounded text-sm">
             Processed
           </div>
         </div>
       </div>
+      
+      {/* Loading indicator */}
+      {(!isFullyLoaded) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+          <div className="flex flex-col items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+            <p className="text-white mt-2">Loading comparison...</p>
+          </div>
+        </div>
+      )}
       
       {/* Slider control */}
       <div 

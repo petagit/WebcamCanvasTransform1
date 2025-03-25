@@ -197,8 +197,22 @@ export default function Webcam({
         console.log("Image loaded with dimensions:", img.width, "x", img.height);
         
         if (canvasRef.current) {
-          // Store the original image for the slider
-          setBeforeImage(originalImageUrl);
+          // Store the original image for the slider - use crossOrigin to avoid CORS issues
+          // Create a clean copy of the image to ensure consistent dimensions
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = img.width;
+          tempCanvas.height = img.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          
+          if (tempCtx) {
+            tempCtx.drawImage(img, 0, 0, img.width, img.height);
+            const cleanOriginalUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
+            setBeforeImage(cleanOriginalUrl);
+            console.log("Created clean original image for slider");
+          } else {
+            // Fallback if we can't create a clean copy
+            setBeforeImage(originalImageUrl);
+          }
           
           // Process the image with filters
           canvasRef.current.width = img.width;
@@ -243,8 +257,9 @@ export default function Webcam({
                 );
                 
                 // Once processed, capture the result for comparison
-                const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+                const processedImageUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
                 console.log("Generated processed image URL:", processedImageUrl.substring(0, 50) + "...");
+                console.log("Processed image dimensions:", canvasRef.current.width, "x", canvasRef.current.height);
                 setAfterImage(processedImageUrl);
                 
                 // Show before/after comparison
@@ -622,7 +637,8 @@ export default function Webcam({
                                       );
                                       
                                       // Store the processed image for the slider
-                                      const processedImageUrl = canvasRef.current.toDataURL('image/jpeg');
+                                      const processedImageUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
+                                      console.log("Processed image dimensions:", canvasRef.current.width, "x", canvasRef.current.height);
                                       setAfterImage(processedImageUrl);
                                       setShowBeforeAfterComparison(true);
                                     }
