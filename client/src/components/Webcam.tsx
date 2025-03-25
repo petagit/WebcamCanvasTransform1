@@ -710,12 +710,33 @@ export default function Webcam({
           ) : (
             <>
               {showBeforeAfterComparison && beforeImage && afterImage ? (
-                <div className="w-full h-full flex justify-center items-center">
+                <div className="w-full h-full flex flex-col justify-center items-center">
                   <BeforeAfterSlider 
                     beforeImage={beforeImage} 
                     afterImage={afterImage}
                     className="w-full max-h-full"
                   />
+                  
+                  {/* Toggle button for video comparison */}
+                  {uploadedVideoUrl && (
+                    <Button
+                      className="mt-2 bg-app-blue hover:bg-blue-600"
+                      onClick={() => {
+                        setShowBeforeAfterComparison(false);
+                        setIsProcessingVideo(true);
+                        // Resume video processing
+                        if (uploadedVideoElement) {
+                          uploadedVideoElement.currentTime = 0;
+                          uploadedVideoElement.play().catch(err => {
+                            console.error("Error playing video:", err);
+                          });
+                        }
+                      }}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Play Processed Video
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -729,6 +750,22 @@ export default function Webcam({
                     ref={canvasRef}
                     className="w-full h-full object-contain"
                   />
+                  
+                  {/* Show button to compare before/after for videos during playback */}
+                  {isProcessingVideo && uploadedVideoUrl && (
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                      <Button
+                        className="bg-app-blue hover:bg-blue-600"
+                        onClick={() => {
+                          setIsProcessingVideo(false);
+                          setShowBeforeAfterComparison(true);
+                        }}
+                      >
+                        <SplitSquareVertical className="h-4 w-4 mr-2" />
+                        Show Before/After
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
               
