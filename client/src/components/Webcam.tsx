@@ -368,10 +368,11 @@ export default function Webcam({
     if (isCameraActive) {
       onCameraReady();
       setShowPlaceholder(false);
-    } else {
+    } else if (!uploadedImageMode) {
+      // Only show placeholder if we're not in uploaded image mode
       setShowPlaceholder(true);
     }
-  }, [isCameraActive, onCameraReady]);
+  }, [isCameraActive, onCameraReady, uploadedImageMode]);
 
   // Handle fullscreen with mobile compatibility
   const toggleFullscreen = () => {
