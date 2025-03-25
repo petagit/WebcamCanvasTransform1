@@ -73,13 +73,14 @@ export default function Webcam({
   // Process uploaded video with current filter settings
   const processUploadedVideo = () => {
     console.log("Processing uploaded video...");
+    setIsProcessing(true); // Show loading indicator
+    
     if (!canvasRef.current || !uploadedVideoElement || !uploadedVideoUrl) {
       console.error("Missing canvas, video element, or video URL");
+      setCameraError("Error processing video. Missing required elements.");
+      setIsProcessing(false); // Clear loading indicator on error
       return;
     }
-    
-    // Show loading indicator
-    setIsProcessing(true);
     
     try {
       // If webcam is active, stop it
@@ -109,11 +110,14 @@ export default function Webcam({
       uploadedVideoElement.play().catch(err => {
         console.error("Error playing video:", err);
         setCameraError("Failed to play the video. Please try again.");
+        setIsProcessingVideo(false);
+        setIsProcessing(false); // Clear loading indicator on error
       });
     } catch (error) {
       console.error("Error processing video:", error);
       setCameraError("Error applying filters to video. Please try again.");
       setIsProcessingVideo(false);
+      setIsProcessing(false); // Clear loading indicator on error
     }
   };
   
@@ -188,13 +192,16 @@ export default function Webcam({
   // Process the uploaded image with current filter settings
   const processUploadedImage = () => {
     console.log("Processing uploaded image...");
-    if (!canvasRef.current || !originalImageUrl) {
-      console.error("Missing canvas or original image URL");
-      return;
-    }
     
     // Show loading indicator
     setIsProcessing(true);
+    
+    if (!canvasRef.current || !originalImageUrl) {
+      console.error("Missing canvas or original image URL");
+      setCameraError("Error processing image. Missing required elements.");
+      setIsProcessing(false); // Clear loading indicator on error
+      return;
+    }
     
     try {
       console.log("Original image URL:", originalImageUrl.substring(0, 50) + "...");
@@ -466,43 +473,89 @@ export default function Webcam({
 
   // Capture image
   const captureImage = () => {
-    if (!canvasRef.current) return;
+    setIsProcessing(true); // Show loading indicator during capture
+    
+    if (!canvasRef.current) {
+      console.error("Cannot capture image: canvas not available");
+      setCameraError("Error capturing image. Canvas not available.");
+      setIsProcessing(false);
+      return;
+    }
     
     try {
       const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.95);
       console.log("Captured image dimensions:", canvasRef.current.width, "x", canvasRef.current.height);
       onCaptureImage(dataUrl);
+      setIsProcessing(false); // Hide loading indicator on success
     } catch (error) {
       console.error("Error capturing image:", error);
       setCameraError("Error capturing image. Please try again.");
+      setIsProcessing(false); // Clear loading indicator on error
     }
   };
 
   // Toggle recording
   const toggleRecording = () => {
     if (!isRecording && mediaRecorder) {
-      // Start recording
-      const chunks: BlobPart[] = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
+      // Show processing indicator when starting recording
+      setIsProcessing(true);
       
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        onRecordVideo(url);
-      };
-      
-      mediaRecorder.start(100); // Record in 100ms chunks
-      setIsRecording(true);
-      onStreamingChange(true);
+      try {
+        // Start recording
+        const chunks: BlobPart[] = [];
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+        
+        mediaRecorder.onstop = () => {
+          try {
+            const blob = new Blob(chunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            onRecordVideo(url);
+            setIsProcessing(false); // Hide loading indicator after successful processing
+          } catch (error) {
+            console.error("Error processing recorded video:", error);
+            setCameraError("Failed to process recorded video. Please try again.");
+            setIsProcessing(false); // Clear loading indicator on error
+          }
+        };
+        
+        mediaRecorder.onerror = (event) => {
+          console.error("MediaRecorder error:", event);
+          setCameraError("Recording error. Please try again.");
+          setIsProcessing(false); // Clear loading indicator on error
+          setIsRecording(false);
+        };
+        
+        // Start recording
+        mediaRecorder.start(100); // Record in 100ms chunks
+        setIsRecording(true);
+        onStreamingChange(true);
+        setIsProcessing(false); // Hide loading indicator once recording starts
+      } catch (error) {
+        console.error("Error starting recording:", error);
+        setCameraError("Failed to start recording. Please try again.");
+        setIsProcessing(false); // Clear loading indicator on error
+      }
     } else if (isRecording && mediaRecorder) {
-      // Stop recording
-      mediaRecorder.stop();
-      setIsRecording(false);
-      onStreamingChange(false);
+      // Show processing indicator when stopping recording
+      setIsProcessing(true);
+      
+      try {
+        // Stop recording
+        mediaRecorder.stop();
+        setIsRecording(false);
+        onStreamingChange(false);
+        // Note: setIsProcessing(false) will be called in the onstop handler
+      } catch (error) {
+        console.error("Error stopping recording:", error);
+        setCameraError("Failed to stop recording. Please try again.");
+        setIsProcessing(false); // Clear loading indicator on error
+        setIsRecording(false);
+        onStreamingChange(false);
+      }
     }
   };
 
