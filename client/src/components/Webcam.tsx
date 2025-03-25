@@ -179,7 +179,7 @@ export default function Webcam({
       console.log("Original image URL:", originalImageUrl.substring(0, 50) + "...");
       
       // Create temp image from original
-      const img = new Image();
+      const img = document.createElement('img');
       
       img.onload = () => {
         console.log("Image loaded with dimensions:", img.width, "x", img.height);
@@ -562,7 +562,7 @@ export default function Webcam({
                               // Process the image immediately
                               if (canvasRef.current) {
                                 // Create an image element from the file
-                                const img = new Image();
+                                const img = new Image(0, 0);
                                 img.onload = () => {
                                   console.log("Image loaded with dimensions:", img.width, "x", img.height);
                                   
