@@ -60,11 +60,15 @@ export default function Webcam({
   // Wrap startCamera function to handle errors more gracefully in the UI
   const handleStartCamera = async () => {
     setCameraError(null);
+    setIsProcessing(true); // Show loading indicator
+    
     try {
       await startCameraFn();
+      setIsProcessing(false); // Hide loading indicator on success
     } catch (error) {
       console.error("Failed to start camera:", error);
       setCameraError("Unable to access camera. Please check your browser permissions.");
+      setIsProcessing(false); // Clear loading indicator on error
     }
   };
 
@@ -650,13 +654,22 @@ export default function Webcam({
                         variant="outline" 
                         className="w-full flex items-center justify-center space-x-2"
                         onClick={() => {
+                          // Show loading indicator when starting upload
+                          setIsProcessing(true);
+                          
                           // Handle image file upload
                           const input = document.createElement('input');
                           input.type = 'file';
                           input.accept = 'image/jpeg,image/png,image/jpg';
-                          input.click();
+                          
+                          // Set a timeout to clear the loading indicator if nothing is selected
+                          const uploadTimeout = setTimeout(() => {
+                            setIsProcessing(false);
+                          }, 30000); // 30 second timeout
                           
                           input.onchange = (e) => {
+                            clearTimeout(uploadTimeout);
+                            
                             const target = e.target as HTMLInputElement;
                             if (target.files && target.files[0]) {
                               const file = target.files[0];
@@ -672,6 +685,9 @@ export default function Webcam({
                                 const img = document.createElement('img');
                                 img.onload = () => {
                                   console.log("Image loaded with dimensions:", img.width, "x", img.height);
+                                  
+                                  // Clear the loading indicator if the user doesn't want to apply filters immediately
+                                  setIsProcessing(false);
                                   
                                   if (canvasRef.current) {
                                     // Store the original image for the slider
@@ -744,13 +760,24 @@ export default function Webcam({
                         variant="outline" 
                         className="w-full flex items-center justify-center space-x-2"
                         onClick={() => {
+                          // Show loading indicator when starting upload
+                          setIsProcessing(true);
+                          
                           // Handle video file upload
                           const input = document.createElement('input');
                           input.type = 'file';
                           input.accept = 'video/mp4';
+                          
+                          // Set a timeout to clear the loading indicator if nothing is selected
+                          const uploadTimeout = setTimeout(() => {
+                            setIsProcessing(false);
+                          }, 30000); // 30 second timeout
+                          
                           input.click();
                           
                           input.onchange = (e) => {
+                            clearTimeout(uploadTimeout);
+                            
                             const target = e.target as HTMLInputElement;
                             if (target.files && target.files[0]) {
                               const file = target.files[0];
@@ -770,6 +797,7 @@ export default function Webcam({
                               videoElement.onloadedmetadata = () => {
                                 console.log(`Video dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
                                 setUploadedVideoElement(videoElement);
+                                setIsProcessing(false); // Clear loading indicator once video is loaded
                               };
                               
                               videoElement.onerror = () => {
@@ -851,6 +879,16 @@ export default function Webcam({
                     </div>
                   )}
                 </>
+              )}
+              
+              {/* Loading Indicator */}
+              {isProcessing && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                  <div className="bg-app-dark rounded-lg p-6 flex flex-col items-center">
+                    <div className="animate-spin h-10 w-10 border-4 border-app-blue border-t-transparent rounded-full mb-4"></div>
+                    <div className="text-white font-medium">Processing...</div>
+                  </div>
+                </div>
               )}
               
               {showPaywall && (
@@ -954,10 +992,13 @@ export default function Webcam({
             <Button
               className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600"
               onClick={async () => {
+                setIsProcessing(true); // Show loading indicator
                 try {
                   await switchCamera();
+                  setIsProcessing(false); // Hide loading indicator on success
                 } catch (error) {
                   console.error("Error switching camera:", error);
+                  setIsProcessing(false); // Clear loading indicator on error
                 }
               }}
               disabled={!isCameraActive || availableCameras.length <= 1}
