@@ -288,10 +288,12 @@ export default function Webcam({
               } else {
                 console.error("Could not create backup canvas context");
                 setCameraError("Failed to process image. Please try again.");
+                setIsProcessing(false); // Clear loading indicator on error
               }
             } catch (imgError) {
               console.error("Error during image processing:", imgError);
               setCameraError("Error processing image data. Please try a different image.");
+              setIsProcessing(false); // Clear loading indicator on error
             }
           } else {
             console.error("Could not get canvas context");
@@ -306,6 +308,7 @@ export default function Webcam({
       img.onerror = () => {
         console.error("Error loading image");
         setCameraError("Failed to load the image. Please try again.");
+        setIsProcessing(false); // Clear loading indicator on error
       };
       
       img.src = originalImageUrl;
@@ -313,6 +316,7 @@ export default function Webcam({
     } catch (error) {
       console.error("Error processing image:", error);
       setCameraError("Error applying filters. Please try again.");
+      setIsProcessing(false); // Clear loading indicator on error
     }
   };
 
@@ -661,6 +665,7 @@ export default function Webcam({
                                 img.onerror = () => {
                                   console.error("Error loading image");
                                   setCameraError("Failed to load the image. Please try a different file.");
+                                  setIsProcessing(false); // Clear loading indicator on error
                                 };
                                 
                                 img.src = imageUrl;
@@ -717,6 +722,7 @@ export default function Webcam({
                               videoElement.onerror = () => {
                                 console.error("Error loading video");
                                 setCameraError("This video format is not supported. Please try an MP4 file.");
+                                setIsProcessing(false); // Clear loading indicator on error
                               };
                             }
                           };
