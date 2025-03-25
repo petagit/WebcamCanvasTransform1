@@ -331,29 +331,81 @@ export default function Webcam({
     }
   };
 
-  // Set up animation frame for canvas rendering
+  // Set up animation frame for canvas rendering with enhanced initialization
   useEffect(() => {
     let animationFrameId: number;
+    let videoReadyCheck: NodeJS.Timeout | null = null;
     
     const renderFrame = () => {
       if (videoRef.current && canvasRef.current && isCameraActive && !uploadedImageMode) {
-        processFrame(
-          videoRef.current,
-          canvasRef.current,
-          filterSettings,
-          isBackCamera
-        );
+        // If video is fully initialized with dimensions, process the frame
+        if (videoRef.current.videoWidth && videoRef.current.videoHeight) {
+          // Clear any pending ready check since video is now ready
+          if (videoReadyCheck) {
+            clearTimeout(videoReadyCheck);
+            videoReadyCheck = null;
+          }
+          
+          // Process the frame with current filter settings
+          processFrame(
+            videoRef.current,
+            canvasRef.current,
+            filterSettings,
+            isBackCamera
+          );
+        } else {
+          // Video doesn't have dimensions yet
+          // If we don't have a check timer running, start one
+          if (!videoReadyCheck) {
+            console.log("Video not yet ready, setting up initialization check...");
+            
+            // Show "Initializing camera" message on canvas
+            if (canvasRef.current) {
+              const ctx = canvasRef.current.getContext('2d');
+              if (ctx) {
+                canvasRef.current.width = canvasRef.current.width || 640;
+                canvasRef.current.height = canvasRef.current.height || 480;
+                
+                ctx.fillStyle = '#1a1a2e'; // Dark blue background
+                ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                ctx.fillStyle = '#ffffff'; // White text
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Initializing camera...', canvasRef.current.width/2, canvasRef.current.height/2);
+              }
+            }
+            
+            // Check if camera is ready after a brief delay
+            videoReadyCheck = setTimeout(() => {
+              videoReadyCheck = null;
+              if (videoRef.current && !videoRef.current.videoWidth) {
+                console.log("Camera still not ready, attempting to force play...");
+                // Try to directly play the video element to trigger loading
+                videoRef.current.play().catch(err => {
+                  console.error("Error playing video:", err);
+                });
+              }
+            }, 1000); // Check after 1 second
+          }
+        }
       }
+      
+      // Continue animation loop
       animationFrameId = requestAnimationFrame(renderFrame);
     };
     
+    // Start animation loop when camera is active
     if (isCameraActive && !uploadedImageMode) {
       animationFrameId = requestAnimationFrame(renderFrame);
     }
     
+    // Cleanup function
     return () => {
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
+      }
+      if (videoReadyCheck) {
+        clearTimeout(videoReadyCheck);
       }
     };
   }, [isCameraActive, filterSettings, isBackCamera, uploadedImageMode]);

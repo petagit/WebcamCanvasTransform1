@@ -76,7 +76,8 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
           video: {
             facingMode: facingMode,
             width: { ideal: 1280 },
-            height: { ideal: 720 }
+            height: { ideal: 720 },
+            frameRate: { ideal: 30, min: 15 }  // Add frameRate constraint for better initialization
           },
           audio: false
         };
@@ -96,7 +97,8 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
           video: { 
             deviceId: { ideal: deviceId },
             width: { ideal: 1280 },
-            height: { ideal: 720 }
+            height: { ideal: 720 },
+            frameRate: { ideal: 30, min: 15 }  // Add frameRate constraint for better initialization
           },
           audio: false
         };
