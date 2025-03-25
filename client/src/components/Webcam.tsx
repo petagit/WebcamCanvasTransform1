@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
 import { processFrame } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
-import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2, Upload } from "lucide-react";
+import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2, Upload, Play, SplitSquareVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { FilterSettings } from "@/pages/Home";
 import BeforeAfterSlider from "./BeforeAfterSlider";
