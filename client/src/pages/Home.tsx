@@ -5,12 +5,14 @@ import Webcam from "@/components/Webcam";
 import SimpleMobileCamera from "@/components/SimpleMobileCamera";
 import SimpleWebcam from "@/components/SimpleWebcam"; // Import the simple webcam component
 import FilteredWebcam from "@/components/FilteredWebcam"; // Import the filtered webcam component
+import ImageUploader from "@/components/ImageUploader"; // Import the image uploader component
 import ControlPanel from "@/components/ControlPanel";
 import StatusBar from "@/components/StatusBar";
 import PreviewModal from "@/components/PreviewModal";
 import HelpModal from "@/components/HelpModal";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type CapturedItem = {
   id: string;
@@ -39,6 +41,7 @@ export default function Home() {
   const [previewItem, setPreviewItem] = useState<CapturedItem | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [activeTab, setActiveTab] = useState("camera");
   const isMobile = useIsMobile();
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
     dotSize: 10,
@@ -205,8 +208,55 @@ export default function Home() {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {/* Simple webcam component for diagnostics */}
+            {/* Tabs for switching between camera and image upload */}
             <div className="mb-4 p-3 bg-gray-800 rounded">
+              <Tabs 
+                value={activeTab} 
+                onValueChange={(value) => {
+                  setActiveTab(value);
+                  if (value === "image") {
+                    // Turn off camera when switching to image upload tab
+                    setCameraReady(false);
+                    setIsStreaming(false);
+                  }
+                }}
+                className="w-full"
+              >
+                <TabsList className="w-full mb-4">
+                  <TabsTrigger value="camera" className="flex-1">Camera</TabsTrigger>
+                  <TabsTrigger value="image" className="flex-1">Upload Image</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="camera" className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold mb-2">Filtered Camera</h3>
+                    <p className="text-sm mb-3">This applies the dot matrix filter directly to the video.</p>
+                    <FilteredWebcam
+                      onCameraActive={(active) => {
+                        setCameraReady(active);
+                        setIsStreaming(active);
+                      }}
+                      onCaptureImage={handleCaptureImage}
+                      filterSettings={filterSettings}
+                    />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="image" className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold mb-2">Upload Image</h3>
+                    <p className="text-sm mb-3">Upload an image and apply the dot matrix filter to it.</p>
+                    <ImageUploader
+                      onImageFiltered={handleCaptureImage}
+                      filterSettings={filterSettings}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+            
+            {/* Hidden diagnostic component that can be uncommented for debugging */}
+            <div className="hidden">
               <h3 className="text-lg font-bold mb-2">Simple Camera Test</h3>
               <p className="text-sm mb-3">This is a diagnostic component to test basic camera functionality.</p>
               <SimpleWebcam 
@@ -214,17 +264,6 @@ export default function Home() {
                   setCameraReady(active);
                   setIsStreaming(active);
                 }}
-              />
-            </div>
-            
-            {/* Filtered Webcam Component */}
-            <div className="mb-4 p-3 bg-gray-800 rounded">
-              <h3 className="text-lg font-bold mb-2">Filtered Camera</h3>
-              <p className="text-sm mb-3">This simplified component applies the dot matrix filter directly to the video.</p>
-              <FilteredWebcam
-                onCameraActive={(active) => setCameraReady(active)}
-                onCaptureImage={handleCaptureImage}
-                filterSettings={filterSettings}
               />
             </div>
             
