@@ -107,7 +107,7 @@ export default function Webcam({
       // Set up event handlers for the video
       uploadedVideoElement.onplay = () => {
         // Start processing video frames
-        processVideoFrame();
+        processCurrentVideoFrame();
       };
       
       // Start playing the video
@@ -126,7 +126,7 @@ export default function Webcam({
   };
   
   // Process a single frame of the uploaded video
-  const processVideoFrame = () => {
+  const processCurrentVideoFrame = () => {
     if (!canvasRef.current || !uploadedVideoElement || !isProcessingVideo) return;
     
     try {
@@ -142,7 +142,7 @@ export default function Webcam({
         
         // Apply filters to the video frame
         if (uploadedVideoElement && canvasRef.current) {
-          processVideoFrame(
+          processVideoWithFilters(
             uploadedVideoElement,
             canvasRef.current,
             filterSettings
@@ -151,7 +151,7 @@ export default function Webcam({
         
         // Continue processing if video is still playing
         if (!uploadedVideoElement.paused && !uploadedVideoElement.ended && isProcessingVideo) {
-          requestAnimationFrame(processVideoFrame);
+          requestAnimationFrame(processCurrentVideoFrame);
         } else {
           setIsProcessingVideo(false);
           setIsProcessing(false); // Hide loading indicator
