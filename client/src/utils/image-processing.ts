@@ -1,8 +1,99 @@
 import type { DotShape, FilterSettings } from "@/pages/Home";
 
 /**
- * Process a video frame with dot matrix/halftone and other effects
- * Improved with extensive error handling for mobile compatibility and orientation
+ * Process a webcam stream with dot matrix/halftone and other effects
+ * This version is optimized for live webcam streams
+ */
+export function processWebcamFrame(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  filterSettings: FilterSettings,
+  isBackCamera?: boolean
+): void {
+  console.log("processWebcamFrame called with:", {
+    hasVideo: !!video, 
+    hasCanvas: !!canvas, 
+    filterSettings,
+    isBackCamera
+  });
+
+  // Safety check inputs
+  if (!canvas || !video) {
+    console.error("Missing canvas or video");
+    return;
+  }
+  
+  if (!video.videoWidth || !video.videoHeight) {
+    console.warn("Video doesn't have valid dimensions yet:", video.videoWidth, "x", video.videoHeight);
+    return;
+  }
+
+  // Process the video frame
+  _processFrameCore(video, canvas, filterSettings, isBackCamera);
+}
+
+/**
+ * Process an uploaded video with dot matrix/halftone and other effects
+ * This version is optimized for processing uploaded video files
+ */
+export function processVideoFrame(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  filterSettings: FilterSettings
+): void {
+  // Safety check inputs
+  if (!canvas || !video) {
+    console.error("Missing canvas or video");
+    return;
+  }
+  
+  if (!video.videoWidth || !video.videoHeight) {
+    console.warn("Video doesn't have valid dimensions yet:", video.videoWidth, "x", video.videoHeight);
+    return;
+  }
+
+  // Process the video frame with the core processing function
+  _processFrameCore(video, canvas, filterSettings, false);
+}
+
+/**
+ * Process an image with dot matrix/halftone and other effects
+ * This version is optimized for processing static images
+ */
+export function processImageData(
+  canvas: HTMLCanvasElement,
+  filterSettings: FilterSettings,
+  imageData: ImageData
+): void {
+  // Safety check inputs
+  if (!canvas || !imageData) {
+    console.error("Missing canvas or image data");
+    return;
+  }
+
+  // Get canvas context
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error("Failed to get canvas context");
+    return;
+  }
+
+  // Put the image data on the canvas
+  ctx.putImageData(imageData, 0, 0);
+  
+  // Now process with the core processing function
+  // We create a fake video element with the right dimensions
+  const fakeVideo = document.createElement('video');
+  fakeVideo.width = imageData.width;
+  fakeVideo.height = imageData.height;
+  
+  // Process with core function
+  _processFrameCore(fakeVideo, canvas, filterSettings, false, imageData);
+}
+
+/**
+ * Legacy function for backward compatibility
+ * Delegates to specialized functions
  */
 export function processFrame(
   video: HTMLVideoElement | null,
@@ -11,29 +102,28 @@ export function processFrame(
   isBackCamera?: boolean,
   providedImageData?: ImageData
 ): void {
-  console.log("processFrame called with:", {
-    hasVideo: !!video, 
-    hasCanvas: !!canvas, 
-    filterSettings,
-    isBackCamera,
-    hasProvidedImageData: !!providedImageData
-  });
-
-  // Safety check inputs
-  if (!canvas) {
-    console.error("Missing canvas");
-    return;
-  }
+  console.log("Legacy processFrame called, delegating to specialized functions");
   
-  if (!video && !providedImageData) {
+  if (providedImageData) {
+    processImageData(canvas, filterSettings, providedImageData);
+  } else if (video) {
+    processWebcamFrame(video, canvas, filterSettings, isBackCamera);
+  } else {
     console.error("Missing both video and providedImageData");
-    return;
   }
-  
-  // Early return for video-related operations if video is null
-  if (!video && !providedImageData) {
-    return;
-  }
+}
+
+/**
+ * Core implementation of the processing logic
+ * Used by all the specialized processing functions
+ */
+function _processFrameCore(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  filterSettings: FilterSettings,
+  isBackCamera?: boolean,
+  providedImageData?: ImageData
+): void {
   
   // Extract settings with defaults for any missing or invalid values
   const dotSize = filterSettings.dotSize <= 0 ? 5 : filterSettings.dotSize;

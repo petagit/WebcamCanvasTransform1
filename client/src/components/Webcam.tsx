@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
-import { processFrame } from "@/utils/image-processing";
+import { processWebcamFrame, processVideoFrame, processImageData } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
 import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2, Upload, Play, SplitSquareVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -140,14 +140,11 @@ export default function Webcam({
         // Draw current video frame
         ctx.drawImage(uploadedVideoElement, 0, 0, canvasRef.current.width, canvasRef.current.height);
         
-        // Apply filters
-        const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-        processFrame(
+        // Apply filters to the video frame
+        processVideoFrame(
           uploadedVideoElement,
           canvasRef.current,
-          filterSettings,
-          false,
-          imageData
+          filterSettings
         );
         
         // Continue processing if video is still playing
@@ -268,12 +265,10 @@ export default function Webcam({
                 backupCtx.drawImage(img, 0, 0);
                 
                 // Now apply the filter to the main canvas
-                processFrame(
-                  fakeVideo, // This won't be used for drawing, just for dimensions
+                processImageData(
                   canvasRef.current,
                   filterSettings,
-                  false, // isBackCamera doesn't matter for still image
-                  imageData // Pass the image data to avoid reading from the video
+                  imageData // Pass the image data directly
                 );
                 
                 // Once processed, capture the result for comparison
@@ -364,7 +359,7 @@ export default function Webcam({
           }
           
           // Process the frame with current filter settings
-          processFrame(
+          processWebcamFrame(
             videoRef.current,
             canvasRef.current,
             filterSettings,
@@ -798,11 +793,9 @@ export default function Webcam({
                                       
                                       // Process the image immediately with filters
                                       const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-                                      processFrame(
-                                        document.createElement('video'), // Dummy video element
+                                      processImageData(
                                         canvasRef.current,
                                         filterSettings,
-                                        false,
                                         imageData
                                       );
                                       
