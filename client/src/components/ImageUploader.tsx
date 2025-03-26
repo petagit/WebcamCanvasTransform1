@@ -16,6 +16,8 @@ export default function ImageUploader({
   const [filteredImage, setFilteredImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -31,6 +33,7 @@ export default function ImageUploader({
     setError(null);
     setFilteredImage(null);
     setIsProcessing(true);
+    setProgress(0);
 
     // Check if the file is an image
     if (!file.type.startsWith('image/')) {
@@ -46,7 +49,13 @@ export default function ImageUploader({
     // Load the image to get dimensions and prepare for processing
     const img = new Image();
     img.onload = () => {
+      // Store original image dimensions for maintaining aspect ratio
+      setImageDimensions({
+        width: img.width,
+        height: img.height
+      });
       setIsProcessing(false);
+      setProgress(100);
     };
     img.onerror = () => {
       setError('Failed to load image');
@@ -66,6 +75,7 @@ export default function ImageUploader({
 
     setIsProcessing(true);
     setError(null);
+    setProgress(10); // Start progress
 
     const img = new Image();
     img.onload = () => {
@@ -76,9 +86,12 @@ export default function ImageUploader({
         return;
       }
 
-      // Set canvas dimensions to match image
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Set canvas dimensions to match original image
+      // This ensures we maintain the aspect ratio
+      canvas.width = imageDimensions.width;
+      canvas.height = imageDimensions.height;
+
+      setProgress(30); // Update progress
 
       // Get canvas context
       const ctx = canvas.getContext('2d');
@@ -88,22 +101,29 @@ export default function ImageUploader({
         return;
       }
 
-      // Draw image to canvas
-      ctx.drawImage(img, 0, 0);
+      // Draw image to canvas while maintaining aspect ratio
+      ctx.drawImage(img, 0, 0, imageDimensions.width, imageDimensions.height);
+      setProgress(50); // Update progress
 
-      // Apply the dot matrix filter
-      applyDotMatrixFilter(canvas, filterSettings);
+      // Start processing with a small delay to allow UI to update
+      setTimeout(() => {
+        // Apply the dot matrix filter
+        applyDotMatrixFilter(canvas, filterSettings);
+        setProgress(80); // Update progress
 
-      // Get the filtered image URL
-      const filteredUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setFilteredImage(filteredUrl);
-      onImageFiltered(filteredUrl);
-      setIsProcessing(false);
+        // Get the filtered image URL
+        const filteredUrl = canvas.toDataURL('image/jpeg', 0.9);
+        setFilteredImage(filteredUrl);
+        onImageFiltered(filteredUrl);
+        setProgress(100); // Complete progress
+        setIsProcessing(false);
+      }, 100);
     };
 
     img.onerror = () => {
       setError('Failed to process image');
       setIsProcessing(false);
+      setProgress(0);
     };
 
     img.src = originalImage;
@@ -114,6 +134,8 @@ export default function ImageUploader({
     setOriginalImage(null);
     setFilteredImage(null);
     setError(null);
+    setProgress(0);
+    setImageDimensions({ width: 0, height: 0 });
     
     // Reset file input
     if (fileInputRef.current) {
@@ -266,8 +288,19 @@ export default function ImageUploader({
           
           {/* Loading overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+              {progress > 0 && (
+                <div className="w-64 flex flex-col items-center">
+                  <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-1">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-300">{`Processing... ${progress}%`}</div>
+                </div>
+              )}
             </div>
           )}
           
