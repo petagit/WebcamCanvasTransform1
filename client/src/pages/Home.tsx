@@ -88,6 +88,38 @@ export default function Home() {
     setPreviewItem(item);
     setShowPreviewModal(true);
   };
+  
+  const handleProcessVideo = (videoFile: File) => {
+    // Create a URL for the video file
+    const videoUrl = URL.createObjectURL(videoFile);
+    
+    // Process logic would go here in a real implementation
+    // For now, we'll just create a CapturedItem with the video URL
+    const newItem: CapturedItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      type: "video",
+      url: videoUrl,
+      timestamp: new Date(),
+    };
+    
+    // Add to captured items
+    setCapturedItems((prev) => [newItem, ...prev]);
+    
+    // Show preview
+    setPreviewItem(newItem);
+    setShowPreviewModal(true);
+    
+    toast({
+      title: "Video Processed",
+      description: `Video "${videoFile.name}" has been processed with the current filter settings.`,
+    });
+    
+    // In a full implementation, we would:
+    // 1. Send the video to the backend
+    // 2. Process the video with the current filter settings
+    // 3. Return the processed video URL
+    // 4. Update the UI with the processed video
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-app-dark text-white">
@@ -122,6 +154,7 @@ export default function Home() {
               cameraReady={cameraReady}
               capturedItems={capturedItems}
               onViewItem={handleViewItem}
+              onProcessVideo={handleProcessVideo}
             />
           </div>
         </div>

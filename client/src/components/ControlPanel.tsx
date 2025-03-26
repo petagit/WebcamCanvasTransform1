@@ -17,6 +17,7 @@ interface ControlPanelProps {
   cameraReady: boolean;
   capturedItems: CapturedItem[];
   onViewItem: (item: CapturedItem) => void;
+  onProcessVideo?: (videoFile: File) => void;
 }
 
 export default function ControlPanel({
@@ -24,10 +25,32 @@ export default function ControlPanel({
   setFilterSettings,
   cameraReady,
   capturedItems,
-  onViewItem
+  onViewItem,
+  onProcessVideo
 }: ControlPanelProps) {
   const [isWebcamSource, setIsWebcamSource] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { stopCamera } = useWebcam();
+  
+  const handleApplyFilter = () => {
+    const fileInput = document.getElementById('videoUpload') as HTMLInputElement;
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      const videoFile = fileInput.files[0];
+      setIsProcessing(true);
+      
+      if (onProcessVideo) {
+        onProcessVideo(videoFile);
+      } else {
+        console.warn('onProcessVideo callback not provided');
+      }
+      
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 2000);
+    } else {
+      console.warn('No video file selected');
+    }
+  };
   
   const handleDotSizeChange = (value: number[]) => {
     setFilterSettings(prev => ({ ...prev, dotSize: value[0] }));
@@ -91,7 +114,7 @@ export default function ControlPanel({
             </Button>
           </div>
           {!isWebcamSource && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-3">
               <Label className="block text-label mb-1">Select MP4 file</Label>
               <input 
                 type="file" 
@@ -104,6 +127,23 @@ export default function ControlPanel({
                   file:bg-gray-700 file:text-white
                   hover:file:bg-gray-600"
               />
+              <Button 
+                className="w-full bg-app-blue hover:bg-blue-600 mt-2 flex items-center justify-center space-x-2"
+                onClick={handleApplyFilter}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Square className="h-4 w-4 mr-2" />
+                    <span>Confirm & Apply Filter</span>
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
