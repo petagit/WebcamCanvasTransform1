@@ -44,10 +44,10 @@ export default function PreviewModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-auto"
       onClick={handleBackgroundClick}
     >
-      <div className="bg-app-dark-light rounded-xl max-w-4xl w-full mx-4 overflow-hidden shadow-2xl">
+      <div className="bg-app-dark-light rounded-xl max-w-4xl w-full mx-auto overflow-hidden shadow-2xl relative">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-white">Preview</h3>
           <button 
@@ -58,23 +58,31 @@ export default function PreviewModal({
           </button>
         </div>
         <div className="p-6 flex flex-col items-center">
-          <div className="mb-6 max-h-[60vh] overflow-hidden">
+          <div className="mb-6 max-h-[70vh] overflow-hidden flex items-center justify-center">
             {item.type === "image" ? (
-              <img src={item.url} alt="Preview" className="max-w-full" />
+              <img 
+                src={item.url} 
+                alt="Preview" 
+                className="max-w-full max-h-[70vh] object-contain"
+              />
             ) : (
-              <video src={item.url} controls className="max-w-full max-h-[60vh]" />
+              <video 
+                src={item.url} 
+                controls 
+                className="max-w-full max-h-[70vh] object-contain" 
+              />
             )}
           </div>
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Button 
-              className="flex items-center space-x-2 bg-app-green hover:bg-green-600"
+              className="flex items-center gap-2 bg-app-green hover:bg-green-600"
               onClick={handleDownload}
             >
               <Download className="h-5 w-5" />
               <span>Download</span>
             </Button>
             <Button 
-              className="flex items-center space-x-2 bg-app-blue hover:bg-blue-600"
+              className="flex items-center gap-2 bg-app-blue hover:bg-blue-600"
               onClick={handleShare}
             >
               <Share2 className="h-5 w-5" />
