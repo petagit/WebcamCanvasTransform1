@@ -3,11 +3,13 @@ import React, { useState, useEffect } from "react";
 interface StatusBarProps {
   isStreaming: boolean;
   cameraReady: boolean;
+  activeTab?: string;
 }
 
 export default function StatusBar({ 
   isStreaming, 
-  cameraReady 
+  cameraReady,
+  activeTab = "camera"
 }: StatusBarProps) {
   const [time, setTime] = useState("00:00:00");
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -15,8 +17,8 @@ export default function StatusBar({
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    // Start timer when either streaming or camera is active
-    if (isStreaming || cameraReady) {
+    // Only run timer on camera tab when camera is active
+    if (activeTab === "camera" && (isStreaming || cameraReady)) {
       // Only set startTime if it hasn't been set yet
       if (!startTime) {
         setStartTime(Date.now());
@@ -30,7 +32,7 @@ export default function StatusBar({
         setTime(`${hours}:${minutes}:${seconds}`);
       }, 1000);
     } else {
-      // Reset timer when camera is not active
+      // Reset timer when camera is not active or not on camera tab
       setTime("00:00:00");
       setStartTime(null);
     }
@@ -38,30 +40,60 @@ export default function StatusBar({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isStreaming, cameraReady, startTime]);
+  }, [isStreaming, cameraReady, startTime, activeTab]);
   
+  // Get status based on active tab
+  const getStatusInfo = () => {
+    if (activeTab === "camera") {
+      if (isStreaming) {
+        return {
+          color: "bg-red-500",
+          text: "Recording in progress",
+          showTimer: true
+        };
+      } else if (cameraReady) {
+        return {
+          color: "bg-green-500",
+          text: "Camera active",
+          showTimer: true
+        };
+      } else {
+        return {
+          color: "bg-gray-500",
+          text: "Camera ready",
+          showTimer: false
+        };
+      }
+    } else if (activeTab === "image") {
+      return {
+        color: "bg-blue-500",
+        text: "Image Upload Mode",
+        showTimer: false
+      };
+    } else {
+      return {
+        color: "bg-gray-500",
+        text: "Ready",
+        showTimer: false
+      };
+    }
+  };
+
+  const status = getStatusInfo();
+
   return (
     <div className="mb-4 p-2 rounded-lg bg-app-dark-light text-sm flex items-center justify-between">
       <div className="flex items-center">
         <div 
-          className={`w-3 h-3 rounded-full mr-2 ${
-            isStreaming 
-              ? "bg-red-500" 
-              : cameraReady 
-                ? "bg-green-500" 
-                : "bg-gray-500"
-          }`}
+          className={`w-3 h-3 rounded-full mr-2 ${status.color}`}
         ></div>
         <span className="text-white font-medium">
-          {isStreaming 
-            ? "Recording in progress" 
-            : cameraReady 
-              ? "Camera active" 
-              : "Camera ready"
-          }
+          {status.text}
         </span>
       </div>
-      <div className="text-white font-mono">{time}</div>
+      {status.showTimer && (
+        <div className="text-white font-mono">{time}</div>
+      )}
     </div>
   );
 }
