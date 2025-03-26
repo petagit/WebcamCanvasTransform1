@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Camera, FlipHorizontal, Upload, Image, Video } from "lucide-react";
 import type { FilterSettings } from "@/pages/Home";
-import { processFrame } from "@/utils/image-processing";
+import { processWebcamFrame, processVideoFrame, processImageData } from "@/utils/image-processing";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SimpleMobileCameraProps {
@@ -190,7 +190,7 @@ export default function SimpleMobileCamera({
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
             // Process the image
-            processFrame(null, canvas, filterSettings, false, imageData);
+            processImageData(canvas, filterSettings, imageData);
             
             setIsProcessing(false);
           }
@@ -274,11 +274,10 @@ export default function SimpleMobileCamera({
     
     try {
       // Process the frame
-      processFrame(
+      processVideoFrame(
         uploadedVideoRef.current,
         canvasRef.current,
-        filterSettings,
-        false
+        filterSettings
       );
     } catch (error) {
       console.error('Frame processing error:', error);
@@ -311,7 +310,7 @@ export default function SimpleMobileCamera({
         if (videoRef.current.videoWidth && videoRef.current.videoHeight) {
           try {
             // Process the frame
-            processFrame(
+            processWebcamFrame(
               videoRef.current,
               canvasRef.current,
               filterSettings,
@@ -385,11 +384,10 @@ export default function SimpleMobileCamera({
         if (uploadedVideoRef.current.videoWidth && uploadedVideoRef.current.videoHeight) {
           try {
             // Process the frame
-            processFrame(
+            processVideoFrame(
               uploadedVideoRef.current,
               canvasRef.current,
-              filterSettings,
-              false
+              filterSettings
             );
           } catch (error) {
             console.error('Frame processing error:', error);
