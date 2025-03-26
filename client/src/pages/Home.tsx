@@ -90,35 +90,108 @@ export default function Home() {
   };
   
   const handleProcessVideo = (videoFile: File) => {
-    // Create a URL for the video file
-    const videoUrl = URL.createObjectURL(videoFile);
+    // Create a temporary video element
+    const videoEl = document.createElement('video');
+    videoEl.muted = true;
+    videoEl.playsInline = true;
     
-    // Process logic would go here in a real implementation
-    // For now, we'll just create a CapturedItem with the video URL
-    const newItem: CapturedItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: "video",
-      url: videoUrl,
-      timestamp: new Date(),
+    // Create a canvas element to render the processed frames
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      toast({
+        title: "Processing Error",
+        description: "Could not initialize canvas context for video processing.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create object URL for the file
+    const videoUrl = URL.createObjectURL(videoFile);
+    videoEl.src = videoUrl;
+    
+    // Once the video metadata is loaded, set up canvas dimensions
+    videoEl.onloadedmetadata = () => {
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      
+      // Temporary canvas for processing
+      const processCanvas = document.createElement('canvas');
+      processCanvas.width = videoEl.videoWidth;
+      processCanvas.height = videoEl.videoHeight;
+      
+      const processCtx = processCanvas.getContext('2d');
+      if (!processCtx) return;
+      
+      // Apply filter to the first frame
+      videoEl.currentTime = 0;
+      
+      videoEl.onseeked = async () => {
+        // Draw the current frame to the processing canvas
+        processCtx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+        
+        // Get the image data
+        const imageData = processCtx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Process the frame with our filter
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Import processFrame dynamically to avoid circular dependencies
+        const { processFrame } = await import('@/utils/image-processing');
+        
+        // Apply the filter to the frame
+        processFrame(null, canvas, filterSettings, false, imageData);
+        
+        // Convert the processed frame to a data URL
+        const processedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Create the captured item
+        const newItem: CapturedItem = {
+          id: Math.random().toString(36).substring(2, 9),
+          type: "image", // Store as image since we're just capturing a frame
+          url: processedImageUrl,
+          timestamp: new Date(),
+        };
+        
+        // Add to captured items
+        setCapturedItems((prev) => [newItem, ...prev]);
+        
+        // Show preview
+        setPreviewItem(newItem);
+        setShowPreviewModal(true);
+        
+        // Clean up
+        URL.revokeObjectURL(videoUrl);
+        
+        toast({
+          title: "Video Processed",
+          description: `Video "${videoFile.name}" has been processed with the current filter settings.`,
+        });
+      };
+      
+      // Start the video to trigger the onseeked event
+      videoEl.play().then(() => {
+        videoEl.pause();
+      }).catch(error => {
+        console.error("Error playing video:", error);
+        toast({
+          title: "Processing Error",
+          description: "Could not process video file. Please try another file.",
+          variant: "destructive"
+        });
+      });
     };
     
-    // Add to captured items
-    setCapturedItems((prev) => [newItem, ...prev]);
-    
-    // Show preview
-    setPreviewItem(newItem);
-    setShowPreviewModal(true);
-    
-    toast({
-      title: "Video Processed",
-      description: `Video "${videoFile.name}" has been processed with the current filter settings.`,
-    });
-    
-    // In a full implementation, we would:
-    // 1. Send the video to the backend
-    // 2. Process the video with the current filter settings
-    // 3. Return the processed video URL
-    // 4. Update the UI with the processed video
+    videoEl.onerror = () => {
+      toast({
+        title: "Video Error",
+        description: "Could not load the video file. Please try another file.",
+        variant: "destructive"
+      });
+      URL.revokeObjectURL(videoUrl);
+    };
   };
 
   return (
