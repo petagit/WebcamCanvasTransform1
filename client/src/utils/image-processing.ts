@@ -10,22 +10,45 @@ export function processWebcamFrame(
   filterSettings: FilterSettings,
   isBackCamera?: boolean
 ): void {
-  console.log("processWebcamFrame called with:", {
-    hasVideo: !!video, 
-    hasCanvas: !!canvas, 
-    filterSettings,
-    isBackCamera
-  });
-
   // Safety check inputs
   if (!canvas || !video) {
     console.error("Missing canvas or video");
     return;
   }
   
-  if (!video.videoWidth || !video.videoHeight) {
-    console.warn("Video doesn't have valid dimensions yet:", video.videoWidth, "x", video.videoHeight);
+  // Get canvas context for potential error messages
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error("Could not get canvas context");
     return;
+  }
+  
+  // Check if video is ready (has dimensions and data)
+  if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+    console.warn("Video isn't ready yet:", video.videoWidth, "x", video.videoHeight, "readyState:", video.readyState);
+    
+    // Draw a loading message instead
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Show loading text
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Processing...', canvas.width / 2, canvas.height / 2);
+    
+    // Show readyState to help debug
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`Camera state: ${video.readyState}/4`, canvas.width / 2, canvas.height / 2 + 30);
+    return;
+  }
+  
+  // Make sure canvas size matches video dimensions if not already set
+  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    console.log("Setting canvas size to match video:", video.videoWidth, "x", video.videoHeight);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
   }
 
   // Process the video frame

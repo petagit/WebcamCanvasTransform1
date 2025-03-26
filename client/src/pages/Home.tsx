@@ -3,7 +3,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Webcam from "@/components/Webcam";
 import SimpleMobileCamera from "@/components/SimpleMobileCamera";
-import SimpleWebcam from "@/components/SimpleWebcam"; // Import the new simple webcam component
+import SimpleWebcam from "@/components/SimpleWebcam"; // Import the simple webcam component
+import FilteredWebcam from "@/components/FilteredWebcam"; // Import the filtered webcam component
 import ControlPanel from "@/components/ControlPanel";
 import StatusBar from "@/components/StatusBar";
 import PreviewModal from "@/components/PreviewModal";
@@ -204,7 +205,7 @@ export default function Home() {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {/* Add our simple webcam component for diagnostics */}
+            {/* Simple webcam component for diagnostics */}
             <div className="mb-4 p-3 bg-gray-800 rounded">
               <h3 className="text-lg font-bold mb-2">Simple Camera Test</h3>
               <p className="text-sm mb-3">This is a diagnostic component to test basic camera functionality.</p>
@@ -216,22 +217,35 @@ export default function Home() {
               />
             </div>
             
-            {/* Original camera components below */}
-            {isMobile ? (
-              <SimpleMobileCamera
-                onCameraReady={() => setCameraReady(true)}
+            {/* Filtered Webcam Component */}
+            <div className="mb-4 p-3 bg-gray-800 rounded">
+              <h3 className="text-lg font-bold mb-2">Filtered Camera</h3>
+              <p className="text-sm mb-3">This simplified component applies the dot matrix filter directly to the video.</p>
+              <FilteredWebcam
+                onCameraActive={(active) => setCameraReady(active)}
                 onCaptureImage={handleCaptureImage}
                 filterSettings={filterSettings}
               />
-            ) : (
-              <Webcam 
-                onCameraReady={() => setCameraReady(true)}
-                onCaptureImage={handleCaptureImage}
-                onRecordVideo={handleRecordVideo}
-                onStreamingChange={setIsStreaming}
-                filterSettings={filterSettings}
-              />
-            )}
+            </div>
+            
+            {/* Original camera components hidden for now */}
+            <div className="hidden">
+              {isMobile ? (
+                <SimpleMobileCamera
+                  onCameraReady={() => setCameraReady(true)}
+                  onCaptureImage={handleCaptureImage}
+                  filterSettings={filterSettings}
+                />
+              ) : (
+                <Webcam 
+                  onCameraReady={() => setCameraReady(true)}
+                  onCaptureImage={handleCaptureImage}
+                  onRecordVideo={handleRecordVideo}
+                  onStreamingChange={setIsStreaming}
+                  filterSettings={filterSettings}
+                />
+              )}
+            </div>
           </div>
           
           <div className="lg:col-span-1 space-y-6">

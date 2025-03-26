@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Camera, CameraOff } from 'lucide-react';
 
@@ -10,45 +10,39 @@ export default function SimpleWebcam({ onCameraActive }: SimpleWebcamProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Basic camera start function using the simplest possible constraints
   const startCamera = async () => {
     try {
       setError(null);
+      setIsLoading(true);
       
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setError("Your browser doesn't support camera access");
+        setIsLoading(false);
         return;
       }
       
-      // Use extremely basic constraints - no resolution specifications which can cause issues
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: true, 
         audio: false 
       });
       
       if (videoRef.current) {
-        // Set video source to the stream
         videoRef.current.srcObject = stream;
-        
-        // Play the video
-        try {
-          await videoRef.current.play();
-          console.log("Video is now playing");
-          setIsActive(true);
-          onCameraActive(true);
-        } catch (playError) {
-          console.error("Error playing video:", playError);
-          setError("Could not start video playback");
-        }
+        videoRef.current.play();
+        console.log("Video is now playing");
+        setIsActive(true);
+        onCameraActive(true);
+        setIsLoading(false);
       }
     } catch (err) {
       console.error("Camera access error:", err);
       setError("Could not access camera. Please check permissions.");
+      setIsLoading(false);
     }
   };
   
-  // Stop the camera
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -64,21 +58,12 @@ export default function SimpleWebcam({ onCameraActive }: SimpleWebcamProps) {
     }
   };
   
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (isActive) {
-        stopCamera();
-      }
-    };
-  }, [isActive]);
-  
   return (
-    <div className="flex flex-col items-center bg-gray-900 rounded-lg overflow-hidden">
+    <div className="flex flex-col bg-gray-900 rounded-lg overflow-hidden">
       <div className="relative w-full">
         <video 
           ref={videoRef}
-          className="w-full aspect-video bg-black" 
+          className="w-full max-h-[300px] bg-black aspect-video object-contain"
           playsInline 
           muted
         />
@@ -89,18 +74,25 @@ export default function SimpleWebcam({ onCameraActive }: SimpleWebcamProps) {
           </div>
         )}
         
-        {!isActive && !error && (
+        {!isActive && !error && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70">
             <p className="text-white text-center">Camera inactive</p>
           </div>
         )}
+        
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        )}
       </div>
       
-      <div className="p-3 w-full flex justify-center">
+      <div className="p-3 w-full">
         {!isActive ? (
           <Button 
             onClick={startCamera}
             className="flex items-center gap-2"
+            disabled={isLoading}
           >
             <Camera size={16} />
             Start Camera
