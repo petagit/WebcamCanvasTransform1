@@ -138,11 +138,11 @@ export default function Home() {
         // Process the frame with our filter
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Import processFrame dynamically to avoid circular dependencies
-        const { processFrame } = await import('@/utils/image-processing');
+        // Import processImageData dynamically to avoid circular dependencies
+        const { processImageData } = await import('@/utils/image-processing');
         
         // Apply the filter to the frame
-        processFrame(null, canvas, filterSettings, false, imageData);
+        processImageData(canvas, filterSettings, imageData);
         
         // Convert the processed frame to a data URL
         const processedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
