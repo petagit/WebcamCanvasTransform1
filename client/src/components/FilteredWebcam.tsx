@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Camera, CameraOff, Download } from 'lucide-react';
 import type { FilterSettings } from '@/pages/Home';
-import { processWebcamFrame } from '@/utils/image-processing';
 
 interface FilteredWebcamProps {
   onCameraActive: (active: boolean) => void;
@@ -108,45 +107,136 @@ export default function FilteredWebcam({
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
-    // Set canvas dimensions once video dimensions are available
-    const setCanvasDimensions = () => {
-      if (video.videoWidth && video.videoHeight) {
+    // Create a manual drawing function that applies a simplified dot matrix effect
+    // This approach bypasses the complex _processFrameCore function that might have issues
+    const drawDotMatrix = () => {
+      if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+        // Video not ready, draw loading message
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = 'black';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'white';
+          ctx.font = '16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Initializing camera...', canvas.width/2, canvas.height/2);
+        }
+        animationId = requestAnimationFrame(drawDotMatrix);
+        return;
+      }
+      
+      // Ensure canvas has correct dimensions
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
       }
-    };
-    
-    // Process frame function
-    const processFrame = () => {
-      // Only process if video has dimensions and is ready
-      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-        // Make sure canvas dimensions match video
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-          setCanvasDimensions();
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        animationId = requestAnimationFrame(drawDotMatrix);
+        return;
+      }
+      
+      // Clear canvas
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // First draw video onto a temporary canvas for sampling
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      
+      if (!tempCtx) {
+        animationId = requestAnimationFrame(drawDotMatrix);
+        return;
+      }
+      
+      // Draw video to temp canvas
+      tempCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+      
+      // Extract settings
+      const { dotSize, contrast, brightness, isGrayscale, dotShape } = filterSettings;
+      const gridSize = Math.max(2, Math.min(20, Math.floor(dotSize)));
+      
+      // Apply dot matrix effect
+      ctx.fillStyle = 'white';
+      
+      // Calculate grid boundaries
+      const maxGridX = Math.floor(canvas.width / gridSize);
+      const maxGridY = Math.floor(canvas.height / gridSize);
+      
+      // Draw dots
+      for (let yi = 0; yi < maxGridY; yi++) {
+        for (let xi = 0; xi < maxGridX; xi++) {
+          // Sample point
+          const x = xi * gridSize;
+          const y = yi * gridSize;
+          
+          // Get pixel data
+          const data = tempCtx.getImageData(x, y, 1, 1).data;
+          
+          // Apply brightness and contrast
+          let r = Math.min(255, Math.max(0, data[0] * brightness));
+          let g = Math.min(255, Math.max(0, data[1] * brightness));
+          let b = Math.min(255, Math.max(0, data[2] * brightness));
+          
+          // Apply grayscale if enabled
+          let brightnessValue;
+          if (isGrayscale) {
+            const gray = Math.min(255, Math.max(0, (r + g + b) / 3));
+            brightnessValue = gray;
+          } else {
+            brightnessValue = (r + g + b) / 3;
+          }
+          
+          // Calculate dot size based on brightness
+          const maxRadius = Math.max(1, (gridSize / 2) * 0.8);
+          const radius = Math.max(0.5, (brightnessValue / 255) * maxRadius);
+          
+          // Draw dot if bright enough (skip really dark areas for better contrast)
+          if (brightnessValue > 30) {
+            const centerX = x + gridSize / 2;
+            const centerY = y + gridSize / 2;
+            
+            ctx.beginPath();
+            
+            // Draw appropriate shape
+            switch (dotShape) {
+              case 'square':
+                const size = radius * 1.8;
+                ctx.rect(centerX - size/2, centerY - size/2, size, size);
+                break;
+                
+              case 'cross':
+                const thickness = radius * 0.6;
+                const length = radius * 1.8;
+                ctx.rect(centerX - length/2, centerY - thickness/2, length, thickness);
+                ctx.rect(centerX - thickness/2, centerY - length/2, thickness, length);
+                break;
+                
+              case 'circle':
+              default:
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                break;
+            }
+            
+            ctx.fill();
+          }
         }
-        
-        // Apply filter
-        processWebcamFrame(video, canvas, filterSettings, false);
       }
       
       // Continue animation loop
-      animationId = requestAnimationFrame(processFrame);
+      animationId = requestAnimationFrame(drawDotMatrix);
     };
     
-    // Start animation loop
-    animationId = requestAnimationFrame(processFrame);
-    
-    // Watch for video resize
-    if ('onresize' in video) {
-      video.addEventListener('resize', setCanvasDimensions);
-    }
+    // Start the animation loop
+    animationId = requestAnimationFrame(drawDotMatrix);
     
     // Cleanup
     return () => {
       cancelAnimationFrame(animationId);
-      if ('onresize' in video) {
-        video.removeEventListener('resize', setCanvasDimensions);
-      }
     };
   }, [isActive, filterSettings]);
   
