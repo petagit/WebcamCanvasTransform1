@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useWebcam } from "@/hooks/use-webcam";
-import { processWebcamFrame, processVideoFrame, processImageData } from "@/utils/image-processing";
+import { processWebcamFrame, processVideoFrame as processVideoWithFilters, processImageData } from "@/utils/image-processing";
 import { Button } from "@/components/ui/button";
 import { Camera, Maximize, Video, Image, RefreshCw, FlipHorizontal, Wand2, Upload, Play, SplitSquareVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -141,11 +141,13 @@ export default function Webcam({
         ctx.drawImage(uploadedVideoElement, 0, 0, canvasRef.current.width, canvasRef.current.height);
         
         // Apply filters to the video frame
-        processVideoFrame(
-          uploadedVideoElement,
-          canvasRef.current,
-          filterSettings
-        );
+        if (uploadedVideoElement && canvasRef.current) {
+          processVideoFrame(
+            uploadedVideoElement,
+            canvasRef.current,
+            filterSettings
+          );
+        }
         
         // Continue processing if video is still playing
         if (!uploadedVideoElement.paused && !uploadedVideoElement.ended && isProcessingVideo) {

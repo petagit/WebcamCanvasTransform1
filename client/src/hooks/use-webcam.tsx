@@ -133,30 +133,63 @@ export function useWebcam(videoRef?: RefObject<HTMLVideoElement>): UseWebcamRetu
         // Assign the stream to the video element
         videoEl.srcObject = newStream;
         
-        // Set up multiple event listeners to ensure video starts properly
-        videoEl.onloadedmetadata = () => {
+        // Multiple event listeners for more reliable initialization
+        videoEl.onloadedmetadata = async () => {
           console.log('Video loadedmetadata event fired, dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
-          if (videoRef.current) {
-            videoRef.current.play().catch(e => {
-              console.error('Error playing video on loadedmetadata:', e);
-            });
+          
+          // Try to start playing
+          try {
+            await videoEl.play();
+            console.log('Video playing successfully after metadata loaded');
+          } catch (e) {
+            console.error('Error playing video on loadedmetadata:', e);
+            
+            // iOS Safari often requires user interaction, try with a timeout
+            setTimeout(() => {
+              if (videoRef.current) {
+                videoRef.current.play().catch(err => 
+                  console.error('Delayed play failed:', err)
+                );
+              }
+            }, 500);
           }
         };
         
-        // Additional event handlers for more reliable initialization
-        videoEl.onloadeddata = () => {
-          console.log('Video loadeddata event fired, dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
-          // Try playing again if dimensions are now available
-          if (videoEl.videoWidth === 0) {
-            console.log('Video still not ready on loadeddata event, trying play() again');
-            videoEl.play().catch(e => console.error('Play error on loadeddata:', e));
+        // Additional event for more reliable initialization
+        videoEl.onloadeddata = async () => {
+          console.log('Video loadeddata event fired, state:', videoEl.readyState, 'dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
+          
+          if (videoEl.readyState >= 2) {
+            setIsCameraActive(true);
+            console.log('Camera is now active with readyState:', videoEl.readyState);
           }
+          
+          // Try playing again if not already playing
+          if (videoEl.paused) {
+            try {
+              await videoEl.play();
+              console.log('Video started playing after loadeddata');
+            } catch (e) {
+              console.error('Play error on loadeddata:', e);
+            }
+          }
+        };
+        
+        // Make sure we catch the actual moment when video can play
+        videoEl.oncanplay = () => {
+          console.log('Video can play now, readyState:', videoEl.readyState);
+          setIsCameraActive(true);
         };
         
         // Attempt to play immediately as well
-        videoEl.play().catch(e => {
+        try {
+          // For iOS Safari and some browsers, the play() needs to be in direct response to a user action
+          // But we'll try it anyway for browsers where auto-play is allowed
+          await videoEl.play();
+          console.log('Initial play successful');
+        } catch (e) {
           console.log('Initial play() attempt failed, will retry on events:', e);
-        });
+        }
       }
       
       // Store the current device ID and facing mode information
