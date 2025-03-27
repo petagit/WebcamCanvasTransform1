@@ -13,40 +13,39 @@ export default function Header({ onHelpClick }: HeaderProps) {
   const { user, logoutMutation } = useAuth();
 
   return (
-    <header className="bg-app-dark-light shadow-md">
+    <header className="bg-background border-b border-border/10">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Link href="/" className="flex items-center space-x-2">
-            <Camera className="h-8 w-8 text-app-blue" />
-            <h1 className="text-2xl font-bold text-white text-shadow">PixelCam</h1>
+            <h1 className="text-3xl font-serif text-primary">PixelCam</h1>
           </Link>
         </div>
         <div className="flex items-center space-x-4">
-          <Link href="/gallery" className="text-white hover:text-blue-400 flex items-center gap-2">
+          <Link href="/gallery" className="text-foreground hover:text-primary flex items-center gap-2">
             <ImageIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Gallery</span>
+            <span className="hidden sm:inline text-sm">Gallery</span>
           </Link>
           
           <button 
-            className="text-white hover:text-blue-400"
+            className="text-foreground hover:text-primary"
             onClick={onHelpClick}
             aria-label="Help"
           >
-            <HelpCircle className="h-6 w-6" />
+            <HelpCircle className="h-5 w-5" />
           </button>
 
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-white hidden md:inline text-sm truncate max-w-[150px]">
+              <span className="text-foreground hidden md:inline text-sm truncate max-w-[150px]">
                 {user.username}
               </span>
-              <div className="text-white">
+              <div className="text-foreground">
                 <CreditDisplay />
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="text-white hover:text-red-400"
+                className="text-foreground hover:text-primary"
                 onClick={() => logoutMutation.mutate()}
               >
                 <LogOut className="h-5 w-5 mr-1" />
@@ -58,7 +57,7 @@ export default function Header({ onHelpClick }: HeaderProps) {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-app-dark-light"
+                className="text-foreground border-foreground/30 hover:bg-foreground/10"
               >
                 <span>Login</span>
               </Button>

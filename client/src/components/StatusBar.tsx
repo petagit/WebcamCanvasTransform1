@@ -82,17 +82,17 @@ export default function StatusBar({
   const status = getStatusInfo();
 
   return (
-    <div className="mb-4 p-2 rounded-lg bg-app-dark-light text-sm flex items-center justify-between">
+    <div className="mb-4 p-2 border border-border/10 rounded-sm text-sm flex items-center justify-between">
       <div className="flex items-center">
         <div 
-          className={`w-3 h-3 rounded-full mr-2 ${status.color}`}
+          className={`w-2 h-2 rounded-full mr-2 ${status.color}`}
         ></div>
-        <span className="text-white font-medium">
+        <span className="text-foreground/80 text-xs uppercase tracking-wider">
           {status.text}
         </span>
       </div>
       {status.showTimer && (
-        <div className="text-white font-mono">{time}</div>
+        <div className="text-primary font-mono text-xs">{time}</div>
       )}
     </div>
   );

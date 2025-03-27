@@ -74,10 +74,21 @@ function PaymentForm({ clientSecret, packageDetails, onClose }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <PaymentElement className="text-foreground" />
       <div className="flex justify-between mt-4">
-        <Button variant="outline" onClick={onClose} disabled={isProcessing}>Cancel</Button>
-        <Button type="submit" disabled={!stripe || isProcessing}>
+        <Button 
+          variant="outline" 
+          onClick={onClose} 
+          disabled={isProcessing}
+          className="border-border/30 hover:bg-foreground/10"
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={!stripe || isProcessing}
+          className="bg-primary/20 hover:bg-primary/30 text-primary"
+        >
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -97,21 +108,21 @@ function PackageSelection({ onSelectPackage }: { onSelectPackage: (packageId: st
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {CREDIT_PACKAGES.map(pkg => (
-        <Card key={pkg.id} className="flex flex-col">
+        <Card key={pkg.id} className="flex flex-col border border-border/20 bg-transparent rounded-sm">
           <CardHeader>
-            <CardTitle>{pkg.name}</CardTitle>
-            <CardDescription>{pkg.credits} Credits</CardDescription>
+            <CardTitle className="font-serif text-primary text-lg">{pkg.name}</CardTitle>
+            <CardDescription className="text-foreground/70">{pkg.credits} Credits</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-            <p className="text-2xl font-bold">{pkg.formattedPrice}</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-2xl font-serif text-primary">{pkg.formattedPrice}</p>
+            <p className="text-xs text-foreground/60">
               {(pkg.amount / pkg.credits).toFixed(2)} cents per credit
             </p>
           </CardContent>
           <CardFooter>
             <Button 
               onClick={() => onSelectPackage(pkg.id)} 
-              className="w-full"
+              className="w-full bg-primary/20 hover:bg-primary/30 text-primary"
               variant="default"
             >
               Select
@@ -173,9 +184,20 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
   return (
     <div className="w-full max-w-3xl mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="select">Select Package</TabsTrigger>
-          <TabsTrigger value="payment" disabled={!clientSecret}>Payment</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 border-border/30">
+          <TabsTrigger 
+            value="select"
+            className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+          >
+            Select Package
+          </TabsTrigger>
+          <TabsTrigger 
+            value="payment" 
+            disabled={!clientSecret}
+            className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+          >
+            Payment
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="select" className="pt-4">
           {isLoading ? (
@@ -197,11 +219,11 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
             </Elements>
           ) : (
             <div className="text-center py-8">
-              <p>Please select a package first</p>
+              <p className="text-foreground/70 text-sm">Please select a package first</p>
               <Button 
                 onClick={() => setActiveTab("select")} 
                 variant="outline" 
-                className="mt-4"
+                className="mt-4 border-border/30 hover:bg-foreground/10"
               >
                 Go Back
               </Button>

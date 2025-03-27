@@ -50,16 +50,16 @@ export default function PaywallModal({
         {showLoginPrompt ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-center">
+              <DialogTitle className="text-xl font-serif text-primary text-center">
                 Login Required
               </DialogTitle>
-              <DialogDescription className="text-center pt-2">
+              <DialogDescription className="text-center pt-2 text-foreground/70">
                 You need to log in before purchasing credits.
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-8 text-center">
-              <p className="mb-6">Login to your account to purchase credits and unlock all PixelCam features.</p>
+              <p className="mb-6 text-foreground/80 text-sm">Login to your account to purchase credits and unlock all PixelCam features.</p>
               
               <div className="flex flex-col gap-4 items-center justify-center">
                 <Link 
@@ -70,7 +70,7 @@ export default function PaywallModal({
                   }}
                 >
                   <Button
-                    className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white w-40"
+                    className="bg-primary/20 hover:bg-primary/30 text-primary w-40"
                   >
                     <LogIn className="h-4 w-4 mr-2" />
                     Login
@@ -82,7 +82,7 @@ export default function PaywallModal({
                   onClick={() => {
                     setShowLoginPrompt(false);
                   }}
-                  className="w-40"
+                  className="w-40 border-border/30 hover:bg-foreground/10"
                 >
                   Cancel
                 </Button>
@@ -92,8 +92,8 @@ export default function PaywallModal({
         ) : showPurchasePanel ? (
           <>
             <DialogHeader>
-              <DialogTitle>Purchase Credits</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl font-serif text-primary text-center">Purchase Credits</DialogTitle>
+              <DialogDescription className="text-center pt-2 text-foreground/70">
                 Choose a credit package to continue using PixelCam features.
               </DialogDescription>
             </DialogHeader>
@@ -102,34 +102,34 @@ export default function PaywallModal({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-center">
+              <DialogTitle className="text-xl font-serif text-primary text-center">
                 Free Trial Ended
               </DialogTitle>
-              <DialogDescription className="text-center pt-2">
+              <DialogDescription className="text-center pt-2 text-foreground/70">
                 Your free 10-second preview has ended. Purchase credits to continue using all PixelCam features.
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+              <div className="border border-border/20 p-4 rounded-sm">
+                <h3 className="font-serif text-primary flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-primary/80" />
                   What you get with PixelCam Credits
                 </h3>
                 <ul className="mt-2 space-y-2 pl-7">
-                  <li className="list-disc text-sm">Unlimited webcam usage</li>
-                  <li className="list-disc text-sm">Process and save captured images</li>
-                  <li className="list-disc text-sm">Apply premium filters and effects</li>
-                  <li className="list-disc text-sm">Access to your personal gallery</li>
+                  <li className="list-disc text-xs text-foreground/80">Unlimited webcam usage</li>
+                  <li className="list-disc text-xs text-foreground/80">Process and save captured images</li>
+                  <li className="list-disc text-xs text-foreground/80">Apply premium filters and effects</li>
+                  <li className="list-disc text-xs text-foreground/80">Access to your personal gallery</li>
                 </ul>
               </div>
 
-              <div className="bg-primary/10 p-4 rounded-lg">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Star className="h-5 w-5 text-primary" />
+              <div className="border border-border/20 p-4 rounded-sm">
+                <h3 className="font-serif text-primary flex items-center gap-2 text-sm">
+                  <Star className="h-4 w-4 text-primary/80" />
                   Premium Features
                 </h3>
-                <p className="text-sm mt-1">
+                <p className="text-xs mt-1 text-foreground/80">
                   Each processed image costs 2 credits. Purchase credits in bundles for the best value.
                 </p>
               </div>
@@ -139,13 +139,13 @@ export default function PaywallModal({
               <Button 
                 variant="outline" 
                 onClick={onClose}
-                className="sm:mr-2"
+                className="sm:mr-2 border-border/30 hover:bg-foreground/10"
               >
                 No Thanks
               </Button>
               <Button 
                 onClick={handlePurchaseClick}
-                className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white"
+                className="bg-primary/20 hover:bg-primary/30 text-primary"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 {user ? "Purchase Credits" : "Login & Purchase"}

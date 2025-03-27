@@ -200,7 +200,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-app-dark text-white">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header onHelpClick={() => setShowHelpModal(true)} />
       
       <main className="flex-1 container mx-auto px-4 py-6">
@@ -209,7 +209,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {/* Tabs for switching between camera and image upload */}
-            <div className="mb-4 p-3 bg-gray-800 rounded">
+            <div className="mb-4 p-3 border border-border/10 rounded-sm">
               <Tabs 
                 value={activeTab} 
                 onValueChange={(value) => {
@@ -222,30 +222,37 @@ export default function Home() {
                 }}
                 className="w-full"
               >
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger value="camera" className="flex-1">Camera</TabsTrigger>
-                  <TabsTrigger value="image" className="flex-1">Upload Image</TabsTrigger>
+                <TabsList className="w-full mb-4 bg-background/40">
+                  <TabsTrigger value="camera" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-primary">Camera</TabsTrigger>
+                  <TabsTrigger value="image" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-primary">Upload Image</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="camera" className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-bold mb-2">Filtered Camera</h3>
-                    <p className="text-sm mb-3">This applies the dot matrix filter directly to the video.</p>
-                    <FilteredWebcam
-                      onCameraActive={(active) => {
-                        setCameraReady(active);
-                        setIsStreaming(active);
-                      }}
-                      onCaptureImage={handleCaptureImage}
-                      filterSettings={filterSettings}
-                    />
+                    <h3 className="text-xl font-serif text-primary mb-2">Filtered Camera</h3>
+                    <p className="text-sm text-foreground/70 mb-3">This applies the dot matrix filter directly to the video.</p>
+                    <div className="relative">
+                      <FilteredWebcam
+                        onCameraActive={(active) => {
+                          setCameraReady(active);
+                          setIsStreaming(active);
+                        }}
+                        onCaptureImage={handleCaptureImage}
+                        filterSettings={filterSettings}
+                      />
+                      {!isStreaming && (
+                        <div className="absolute bottom-4 left-0 right-0 text-center text-foreground/70 italic text-sm">
+                          Camera inactive
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="image" className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-bold mb-2">Upload Image</h3>
-                    <p className="text-sm mb-3">Upload an image and apply the dot matrix filter to it.</p>
+                    <h3 className="text-xl font-serif text-primary mb-2">Upload Image</h3>
+                    <p className="text-sm text-foreground/70 mb-3">Upload an image and apply the dot matrix filter to it.</p>
                     <ImageUploader
                       onImageFiltered={handleCaptureImage}
                       filterSettings={filterSettings}
