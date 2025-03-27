@@ -55,6 +55,12 @@ export default function FilteredWebcam({
       setError(null);
       setIsProcessing(true);
       
+      // Reset trial timer if it was previously used
+      if (!hasPremiumAccess) {
+        setTrialTimeRemaining(10);
+        setHasTrialEnded(false);
+      }
+      
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setError("Your browser doesn't support camera access");
         setIsProcessing(false);
@@ -128,29 +134,33 @@ export default function FilteredWebcam({
   
   // Countdown timer for the free trial
   useEffect(() => {
-    // Skip if user has premium access or camera is not active
+    // Skip if user has premium access or camera is not active or trial already ended
     if (!isActive || hasPremiumAccess || hasTrialEnded) {
       return;
     }
     
-    // Reset timer when camera starts
-    if (isActive && trialTimeRemaining === 10) {
-      // Start countdown
-      const timer = setInterval(() => {
-        setTrialTimeRemaining(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setHasTrialEnded(true);
-            setShowPaywall(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      return () => clearInterval(timer);
-    }
-  }, [isActive, hasPremiumAccess, hasTrialEnded, trialTimeRemaining]);
+    console.log("Starting countdown timer from", trialTimeRemaining);
+    
+    // Start the countdown timer
+    const timer = setInterval(() => {
+      setTrialTimeRemaining(prev => {
+        console.log("Timer tick, current value:", prev);
+        if (prev <= 1) {
+          clearInterval(timer);
+          setHasTrialEnded(true);
+          setShowPaywall(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Clean up the timer when camera is turned off or component unmounts
+    return () => {
+      console.log("Clearing timer");
+      clearInterval(timer);
+    };
+  }, [isActive, hasPremiumAccess, hasTrialEnded]);
 
   // Handle purchases/credit top-ups
   const handlePurchaseCredits = async () => {
