@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Camera, CameraOff, Download } from 'lucide-react';
 import type { FilterSettings } from '@/pages/Home';
+import PaywallModal from './PaywallModal';
+import { useAuth } from '@/lib/clerk-provider';
+import { apiRequest } from '@/lib/queryClient';
 
 interface FilteredWebcamProps {
   onCameraActive: (active: boolean) => void;
@@ -19,6 +22,32 @@ export default function FilteredWebcam({
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [trialTimeRemaining, setTrialTimeRemaining] = useState(10); // 10 seconds free trial
+  const [hasTrialEnded, setHasTrialEnded] = useState(false);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
+  
+  const { user } = useAuth();
+  
+  // Check if user has credits when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      const checkCredits = async () => {
+        try {
+          const response = await apiRequest('GET', '/api/credits');
+          if (response.ok) {
+            const data = await response.json();
+            // If user has credits, they can use the camera without time limit
+            setHasPremiumAccess(data.credits > 0);
+          }
+        } catch (error) {
+          console.error('Failed to check credits:', error);
+        }
+      };
+      
+      checkCredits();
+    }
+  }, [user]);
 
   // Basic camera start function using the simplest possible constraints
   const startCamera = async () => {
@@ -94,6 +123,50 @@ export default function FilteredWebcam({
     } catch (error) {
       console.error("Error capturing frame:", error);
       setError("Failed to capture image");
+    }
+  };
+  
+  // Countdown timer for the free trial
+  useEffect(() => {
+    // Skip if user has premium access or camera is not active
+    if (!isActive || hasPremiumAccess || hasTrialEnded) {
+      return;
+    }
+    
+    // Reset timer when camera starts
+    if (isActive && trialTimeRemaining === 10) {
+      // Start countdown
+      const timer = setInterval(() => {
+        setTrialTimeRemaining(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setHasTrialEnded(true);
+            setShowPaywall(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [isActive, hasPremiumAccess, hasTrialEnded, trialTimeRemaining]);
+
+  // Handle purchases/credit top-ups
+  const handlePurchaseCredits = async () => {
+    // Refresh credits after purchase
+    try {
+      const response = await apiRequest('GET', '/api/credits');
+      if (response.ok) {
+        const data = await response.json();
+        setHasPremiumAccess(data.credits > 0);
+        if (data.credits > 0) {
+          setHasTrialEnded(false);
+          setTrialTimeRemaining(10); // Reset the trial timer
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh credits after purchase:', error);
     }
   };
   
@@ -266,6 +339,13 @@ export default function FilteredWebcam({
           className="w-full max-h-[600px] bg-black aspect-video object-contain"
         />
         
+        {/* Free trial countdown timer */}
+        {isActive && !hasPremiumAccess && !hasTrialEnded && (
+          <div className="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+            Free preview: {trialTimeRemaining}s
+          </div>
+        )}
+        
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-red-900/50">
             <p className="text-white text-center p-4">{error}</p>
@@ -281,6 +361,22 @@ export default function FilteredWebcam({
         {isProcessing && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        )}
+        
+        {/* Show blur overlay when trial has ended */}
+        {isActive && hasTrialEnded && !hasPremiumAccess && (
+          <div className="absolute inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center">
+            <div className="text-white text-center p-6 max-w-md">
+              <h3 className="text-xl font-bold mb-2">Free Trial Ended</h3>
+              <p className="mb-4">Purchase credits to continue using all PixelCam features.</p>
+              <Button 
+                onClick={() => setShowPaywall(true)}
+                className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500"
+              >
+                Purchase Credits
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -311,12 +407,20 @@ export default function FilteredWebcam({
             onClick={captureFrame}
             variant="secondary"
             className="flex items-center gap-2"
+            disabled={hasTrialEnded && !hasPremiumAccess}
           >
             <Download size={16} />
             Capture
           </Button>
         )}
       </div>
+      
+      {/* Paywall Modal */}
+      <PaywallModal 
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchaseCredits={handlePurchaseCredits}
+      />
     </div>
   );
 }
