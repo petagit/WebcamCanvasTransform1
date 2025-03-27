@@ -12,6 +12,7 @@ import dotenv from "dotenv";
 import Stripe from "stripe";
 import { z } from "zod";
 import { insertUserSchema } from "@shared/schema";
+import { clerkMiddleware, requireAuth as clerkRequireAuth, getClerkUser } from "./clerk-middleware";
 
 dotenv.config();
 
@@ -355,6 +356,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Error logging out" }); 
       }
       res.json({ success: true });
+    });
+  });
+  
+  // Clerk Auth Routes
+  app.get("/api/clerk/user", clerkMiddleware, (req, res) => {
+    const clerkUser = getClerkUser(req);
+    if (!clerkUser) {
+      return res.status(401).json({ error: "Not authenticated with Clerk" });
+    }
+    res.json({
+      id: (req.user as any).id,
+      username: (req.user as any).username,
+      email: (req.user as any).email,
+      profilePicture: (req.user as any).profilePicture,
+      authProvider: 'clerk'
+    });
+  });
+  
+  // Protected route using Clerk auth
+  app.get("/api/clerk/protected", clerkMiddleware, clerkRequireAuth, (req, res) => {
+    res.json({ 
+      message: "This is a protected route accessible with Clerk auth",
+      user: {
+        id: (req.user as any).id,
+        username: (req.user as any).username
+      } 
     });
   });
 
