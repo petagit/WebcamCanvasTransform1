@@ -35,17 +35,17 @@ export default function Header({ onHelpClick }: HeaderProps) {
           </button>
 
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <span className="text-foreground hidden md:inline text-sm truncate max-w-[150px]">
                 {user.username}
               </span>
-              <div className="text-foreground">
+              <div className="flex-shrink-0">
                 <CreditDisplay />
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="text-foreground hover:text-primary"
+                className="text-foreground hover:text-primary flex-shrink-0"
                 onClick={() => logoutMutation.mutate()}
               >
                 <LogOut className="h-5 w-5 mr-1" />

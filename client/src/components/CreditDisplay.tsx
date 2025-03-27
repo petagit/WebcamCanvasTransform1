@@ -52,35 +52,38 @@ export default function CreditDisplay({ onChange }: CreditDisplayProps) {
     return credits.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
-  // Show error if credits fail to load
-  if (error) {
+  // Even if credits fail to load, we still show the purchase button
+  const displayCredits = () => {
+    if (error) {
+      return (
+        <span className="text-sm text-zinc-100/80">Credits unavailable</span>
+      );
+    }
+    
+    if (isLoading) {
+      return <Loader2 className="h-4 w-4 animate-spin mr-1" />;
+    }
+    
     return (
-      <div className="flex items-center text-destructive">
-        <span className="ml-1 text-sm">Credits unavailable</span>
-      </div>
+      <span className="text-sm font-medium text-zinc-100">
+        {formatCredits(creditsData?.credits || 0)} credits
+      </span>
     );
-  }
+  };
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center">
-        <CreditCard className="h-4 w-4 mr-1 text-primary/80" />
-        
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-        ) : (
-          <span className="text-sm font-medium">
-            {formatCredits(creditsData?.credits || 0)} credits
-          </span>
-        )}
+        <CreditCard className="h-4 w-4 mr-1 text-zinc-100" />
+        {displayCredits()}
       </div>
       
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button 
-            variant="outline" 
+            variant="secondary"
             size="sm" 
-            className="text-sm border-zinc-100/30 bg-zinc-100/10 hover:bg-zinc-100/20 text-zinc-100 flex items-center gap-1"
+            className="ml-1 text-sm bg-zinc-100 text-black hover:bg-zinc-200 flex items-center gap-1 whitespace-nowrap"
           >
             <CreditCard className="h-3.5 w-3.5" />
             Purchase Credits
