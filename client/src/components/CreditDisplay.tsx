@@ -62,21 +62,28 @@ export default function CreditDisplay({ onChange }: CreditDisplayProps) {
   }
 
   return (
-    <div className="flex items-center">
-      <CreditCard className="h-4 w-4 mr-1 text-primary/80" />
-      
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-      ) : (
-        <span className="text-xs mr-2 font-medium">
-          {formatCredits(creditsData?.credits || 0)} credits
-        </span>
-      )}
+    <div className="flex items-center gap-3">
+      <div className="flex items-center">
+        <CreditCard className="h-4 w-4 mr-1 text-primary/80" />
+        
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+        ) : (
+          <span className="text-sm font-medium">
+            {formatCredits(creditsData?.credits || 0)} credits
+          </span>
+        )}
+      </div>
       
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="text-xs h-7 border-border/30 hover:bg-foreground/10">
-            Buy
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-sm border-zinc-100/30 bg-zinc-100/10 hover:bg-zinc-100/20 text-zinc-100 flex items-center gap-1"
+          >
+            <CreditCard className="h-3.5 w-3.5" />
+            Purchase Credits
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] bg-background">
