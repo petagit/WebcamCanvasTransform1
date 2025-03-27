@@ -8,8 +8,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CreditCard, CheckCircle, Star } from "lucide-react";
+import { CreditCard, CheckCircle, Star, LogIn } from "lucide-react";
 import CreditPurchase from "./CreditPurchase";
+import { useAuth } from "@/lib/clerk-provider";
+import { Link } from "wouter";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -23,9 +25,17 @@ export default function PaywallModal({
   onPurchaseCredits,
 }: PaywallModalProps) {
   const [showPurchasePanel, setShowPurchasePanel] = React.useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = React.useState(false);
+  const { user } = useAuth();
 
   const handlePurchaseClick = () => {
-    setShowPurchasePanel(true);
+    if (!user) {
+      // If not logged in, show login prompt
+      setShowLoginPrompt(true);
+    } else {
+      // If logged in, show purchase panel
+      setShowPurchasePanel(true);
+    }
   };
 
   const handlePurchaseComplete = () => {
@@ -37,7 +47,49 @@ export default function PaywallModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        {showPurchasePanel ? (
+        {showLoginPrompt ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-center">
+                Login Required
+              </DialogTitle>
+              <DialogDescription className="text-center pt-2">
+                You need to log in before purchasing credits.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-8 text-center">
+              <p className="mb-6">Login to your account to purchase credits and unlock all PixelCam features.</p>
+              
+              <div className="flex flex-col gap-4 items-center justify-center">
+                <Link 
+                  href="/auth" 
+                  onClick={() => {
+                    onClose();
+                    setShowLoginPrompt(false);
+                  }}
+                >
+                  <Button
+                    className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white w-40"
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Button>
+                </Link>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowLoginPrompt(false);
+                  }}
+                  className="w-40"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : showPurchasePanel ? (
           <>
             <DialogHeader>
               <DialogTitle>Purchase Credits</DialogTitle>
@@ -96,7 +148,7 @@ export default function PaywallModal({
                 className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                Purchase Credits
+                {user ? "Purchase Credits" : "Login & Purchase"}
               </Button>
             </DialogFooter>
           </>
