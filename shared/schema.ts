@@ -14,6 +14,9 @@ export const users = pgTable("users", {
   authProvider: authProviderEnum("auth_provider").default('local').notNull(),
   providerId: text("provider_id"),
   profilePicture: text("profile_picture"),
+  credits: integer("credits").default(5).notNull(), // Users start with 5 free credits
+  stripeCustomerId: text("stripe_customer_id"),
+  lastCamUseTimestamp: timestamp("last_cam_use_timestamp"), // To track the 10-second free limit
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
 });
@@ -45,6 +48,20 @@ export const sessions = pgTable("sessions", {
   data: text("data"),
 });
 
+// Define a transaction type enum
+export const transactionTypeEnum = pgEnum('transaction_type', ['purchase', 'usage']);
+
+// Create a transactions table to track credit purchases and usage
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: transactionTypeEnum("transaction_type").notNull(),
+  amount: integer("amount").notNull(), // Positive for purchases, negative for usage
+  description: text("description").notNull(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
@@ -52,6 +69,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   authProvider: true,
   providerId: true,
   profilePicture: true,
+  credits: true,
+  stripeCustomerId: true,
 });
 
 export const insertCapturedMediaSchema = createInsertSchema(capturedMedia).pick({
@@ -69,6 +88,14 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
   currentPeriodEnd: true,
 });
 
+export const insertTransactionSchema = createInsertSchema(transactions).pick({
+  userId: true,
+  type: true,
+  amount: true,
+  description: true,
+  stripePaymentIntentId: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -77,5 +104,8 @@ export type CapturedMedia = typeof capturedMedia.$inferSelect;
 
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
 
 export type Session = typeof sessions.$inferSelect;

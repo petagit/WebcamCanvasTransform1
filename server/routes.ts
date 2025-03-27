@@ -613,6 +613,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Credit system API routes
+  app.get("/api/credits", clerkRequireAuth, async (req: Request, res: Response) => {
+    try {
+      const clerkUser = getClerkUser(req);
+      if (!clerkUser || !clerkUser.email) {
+        return res.status(401).json({ error: "Unauthorized - user email required" });
+      }
+      
+      const user = await storage.getUserByEmail(clerkUser.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const credits = await storage.getUserCredits(user.id);
+      return res.status(200).json({ credits });
+    } catch (error) {
+      console.error("Error fetching user credits:", error);
+      return res.status(500).json({ error: "Failed to fetch credits" });
+    }
+  });
+  
+  // Consume credits
+  app.post("/api/credits/consume", clerkRequireAuth, async (req: Request, res: Response) => {
+    try {
+      const { amount = 2 } = req.body; // Default to 2 credits for image processing
+      
+      const clerkUser = getClerkUser(req);
+      if (!clerkUser || !clerkUser.email) {
+        return res.status(401).json({ error: "Unauthorized - user email required" });
+      }
+      
+      const user = await storage.getUserByEmail(clerkUser.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check if user has enough credits
+      const currentCredits = await storage.getUserCredits(user.id);
+      if (currentCredits < amount) {
+        return res.status(402).json({ 
+          error: "Insufficient credits", 
+          credits: currentCredits,
+          required: amount
+        });
+      }
+      
+      // Deduct credits
+      const updatedUser = await storage.updateUserCredits(user.id, currentCredits - amount);
+      
+      // Record transaction
+      await storage.createTransaction({
+        userId: user.id,
+        amount: amount,
+        type: 'usage',
+        description: 'Image processing'
+      });
+      
+      return res.status(200).json({ 
+        success: true, 
+        credits: updatedUser ? await storage.getUserCredits(user.id) : currentCredits - amount 
+      });
+    } catch (error) {
+      console.error("Error consuming credits:", error);
+      return res.status(500).json({ error: "Failed to process credit consumption" });
+    }
+  });
+  
+  // Purchase credits with Stripe
+  app.post("/api/credits/purchase", clerkRequireAuth, async (req: Request, res: Response) => {
+    if (!stripe) {
+      return res.status(500).json({ error: "Stripe is not configured" });
+    }
+    
+    try {
+      const { packageId } = req.body;
+      
+      // Define credit packages
+      const creditPackages = {
+        'basic': { credits: 50, amount: 499 },    // $4.99 for 50 credits
+        'plus': { credits: 150, amount: 999 },    // $9.99 for 150 credits
+        'premium': { credits: 500, amount: 1999 } // $19.99 for 500 credits
+      };
+      
+      // Validate package selection
+      if (!packageId || !creditPackages[packageId as keyof typeof creditPackages]) {
+        return res.status(400).json({ error: "Invalid package selected" });
+      }
+      
+      const selectedPackage = creditPackages[packageId as keyof typeof creditPackages];
+      
+      const clerkUser = getClerkUser(req);
+      if (!clerkUser || !clerkUser.email) {
+        return res.status(401).json({ error: "Unauthorized - user email required" });
+      }
+      
+      const user = await storage.getUserByEmail(clerkUser.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Create a payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: selectedPackage.amount,
+        currency: 'usd',
+        metadata: {
+          userId: user.id.toString(),
+          credits: selectedPackage.credits.toString(),
+          packageId
+        },
+        receipt_email: clerkUser.email || undefined,
+        automatic_payment_methods: { enabled: true }
+      });
+      
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        amount: selectedPackage.amount,
+        credits: selectedPackage.credits
+      });
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: "Failed to create payment intent" });
+    }
+  });
+
   // Webhook to handle Stripe events
   app.post('/webhook/stripe', async (req, res) => {
     if (!stripe) {
@@ -647,6 +771,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       case 'customer.subscription.deleted':
         const canceledSubscription = event.data.object;
         await handleSubscriptionCanceled(canceledSubscription);
+        break;
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        await handlePaymentIntentSucceeded(paymentIntent);
         break;
       default:
         console.log(`Unhandled event type ${event.type}`);
@@ -703,6 +831,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error handling subscription cancellation:", error);
+    }
+  }
+  
+  // Helper function to handle successful credit purchases
+  async function handlePaymentIntentSucceeded(paymentIntent: any) {
+    try {
+      // Extract metadata from the payment intent
+      const { userId, credits } = paymentIntent.metadata;
+      
+      if (!userId || !credits) {
+        console.error("Missing metadata in payment intent:", paymentIntent.id);
+        return;
+      }
+      
+      const user = await storage.getUser(parseInt(userId, 10));
+      if (!user) {
+        console.error("User not found for payment intent:", paymentIntent.id);
+        return;
+      }
+      
+      // Get current credits and add the purchased amount
+      const currentCredits = await storage.getUserCredits(user.id);
+      const creditsToAdd = parseInt(credits, 10);
+      
+      // Update user credits
+      await storage.updateUserCredits(user.id, currentCredits + creditsToAdd);
+      
+      // Record the transaction
+      await storage.createTransaction({
+        userId: user.id,
+        amount: creditsToAdd,
+        type: 'purchase',
+        description: `Purchased ${creditsToAdd} credits`
+      });
+      
+      console.log(`Credits added: ${creditsToAdd} to user ID: ${userId}`);
+    } catch (error) {
+      console.error("Error processing payment success:", error);
     }
   }
 

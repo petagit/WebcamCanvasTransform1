@@ -1,7 +1,8 @@
 import { 
-  users, capturedMedia, subscriptions, sessions,
+  users, capturedMedia, subscriptions, sessions, transactions,
   type User, type InsertUser, type CapturedMedia, 
-  type InsertCapturedMedia, type Subscription, type InsertSubscription 
+  type InsertCapturedMedia, type Subscription, type InsertSubscription,
+  type Transaction, type InsertTransaction
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -32,6 +33,10 @@ export interface IStorage {
   getUserByProviderId(providerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(id: number): Promise<User | undefined>;
+  updateUserStripeCustomerId(id: number, stripeCustomerId: string): Promise<User | undefined>;
+  updateUserCamTimestamp(id: number): Promise<User | undefined>;
+  getUserCredits(id: number): Promise<number>;
+  updateUserCredits(id: number, credits: number): Promise<User | undefined>;
   
   // Media methods
   getCapturedMedia(userId: number): Promise<CapturedMedia[]>;
@@ -44,6 +49,10 @@ export interface IStorage {
   getAllSubscriptions(): Promise<Subscription[]>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   updateSubscription(id: number, subscription: Partial<InsertSubscription>): Promise<Subscription | undefined>;
+  
+  // Transaction methods
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getUserTransactions(userId: number): Promise<Transaction[]>;
   
   // Session methods
   createSession(userId: number, expiresInDays: number): Promise<string>;
@@ -89,6 +98,41 @@ export class PostgresStorage implements IStorage {
     const result = await db
       .update(users)
       .set({ lastLogin: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async updateUserStripeCustomerId(id: number, stripeCustomerId: string): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set({ stripeCustomerId })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async updateUserCamTimestamp(id: number): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set({ lastCamUseTimestamp: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async getUserCredits(id: number): Promise<number> {
+    const user = await this.getUser(id);
+    return user?.credits || 0;
+  }
+  
+  async updateUserCredits(id: number, credits: number): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set({ credits })
       .where(eq(users.id, id))
       .returning();
     
@@ -202,6 +246,22 @@ export class PostgresStorage implements IStorage {
       .delete(sessions)
       .where(eq(sessions.id, sessionId));
   }
+  
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const result = await db
+      .insert(transactions)
+      .values(transaction)
+      .returning();
+      
+    return result[0];
+  }
+  
+  async getUserTransactions(userId: number): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId));
+  }
 }
 
 // For backwards compatibility and development environment
@@ -210,18 +270,22 @@ export class MemStorage implements IStorage {
   private mediaItems: Map<number, CapturedMedia>;
   private userSubscriptions: Map<number, Subscription>;
   private userSessions: Map<string, any>;
+  private userTransactions: Map<number, Transaction>;
   currentId: number;
   mediaId: number;
   subscriptionId: number;
+  transactionId: number;
 
   constructor() {
     this.users = new Map();
     this.mediaItems = new Map();
     this.userSubscriptions = new Map();
     this.userSessions = new Map();
+    this.userTransactions = new Map();
     this.currentId = 1;
     this.mediaId = 1;
     this.subscriptionId = 1;
+    this.transactionId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -265,6 +329,9 @@ export class MemStorage implements IStorage {
       providerId: insertUser.providerId || null,
       profilePicture: insertUser.profilePicture || null,
       authProvider: insertUser.authProvider || 'local',
+      credits: 5, // Default starting credits
+      stripeCustomerId: null,
+      lastCamUseTimestamp: null,
       createdAt: new Date(),
       lastLogin: new Date()
     };
@@ -278,6 +345,38 @@ export class MemStorage implements IStorage {
     if (!user) return undefined;
     
     user.lastLogin = new Date();
+    this.users.set(id, user);
+    return user;
+  }
+  
+  async updateUserStripeCustomerId(id: number, stripeCustomerId: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    user.stripeCustomerId = stripeCustomerId;
+    this.users.set(id, user);
+    return user;
+  }
+  
+  async updateUserCamTimestamp(id: number): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    user.lastCamUseTimestamp = new Date();
+    this.users.set(id, user);
+    return user;
+  }
+  
+  async getUserCredits(id: number): Promise<number> {
+    const user = this.users.get(id);
+    return user?.credits || 0;
+  }
+  
+  async updateUserCredits(id: number, credits: number): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    user.credits = credits;
     this.users.set(id, user);
     return user;
   }
@@ -400,6 +499,32 @@ export class MemStorage implements IStorage {
   
   async destroySession(sessionId: string): Promise<void> {
     this.userSessions.delete(sessionId);
+  }
+  
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const id = this.transactionId++;
+    const newTransaction: Transaction = {
+      ...transaction,
+      id,
+      stripePaymentIntentId: transaction.stripePaymentIntentId || null,
+      timestamp: new Date()
+    };
+    
+    this.userTransactions.set(id, newTransaction);
+    return newTransaction;
+  }
+  
+  async getUserTransactions(userId: number): Promise<Transaction[]> {
+    const result: Transaction[] = [];
+    
+    // Use Array.from to avoid iterator issues
+    Array.from(this.userTransactions.entries()).forEach(([_, transaction]) => {
+      if (transaction.userId === userId) {
+        result.push(transaction);
+      }
+    });
+    
+    return result;
   }
 }
 

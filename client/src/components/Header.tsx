@@ -3,6 +3,7 @@ import { Camera, HelpCircle, ImageIcon, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "../lib/clerk-provider"; // Import from clerk-provider instead
 import { Button } from "@/components/ui/button";
+import CreditDisplay from "@/components/CreditDisplay";
 
 interface HeaderProps {
   onHelpClick: () => void;
@@ -39,6 +40,9 @@ export default function Header({ onHelpClick }: HeaderProps) {
               <span className="text-white hidden md:inline text-sm truncate max-w-[150px]">
                 {user.username}
               </span>
+              <div className="text-white">
+                <CreditDisplay />
+              </div>
               <Button 
                 variant="ghost" 
                 size="sm"
