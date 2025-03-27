@@ -1,9 +1,30 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Type declaration for global Clerk object
+declare global {
+  interface Window {
+    Clerk?: {
+      session?: {
+        getToken: () => Promise<string | null>;
+      };
+    };
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
+  }
+}
+
+// Helper to get the Clerk authentication token
+async function getClerkToken(): Promise<string | null> {
+  try {
+    return await window.Clerk?.session?.getToken() || null;
+  } catch (err) {
+    console.error("Error getting Clerk token:", err);
+    return null;
   }
 }
 
@@ -12,9 +33,23 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Get the active session token for Clerk authentication
+  const sessionToken = await getClerkToken();
+  
+  // Prepare headers with auth token when available
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  if (sessionToken) {
+    headers["Authorization"] = `Bearer ${sessionToken}`;
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,8 +64,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Get the active session token for Clerk authentication
+    const sessionToken = await getClerkToken();
+    
+    // Set up headers with auth token when available
+    const headers: Record<string, string> = {};
+    if (sessionToken) {
+      headers["Authorization"] = `Bearer ${sessionToken}`;
+    }
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
