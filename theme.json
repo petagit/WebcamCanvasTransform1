@@ -1,7 +1,7 @@
 {
   "variant": "vibrant",
-  "primary": "hsl(45, 50%, 80%)",
-  "foreground": "hsl(45, 50%, 90%)", 
+  "primary": "hsl(0, 0%, 100%)",
+  "foreground": "hsl(0, 0%, 90%)", 
   "appearance": "dark",
   "radius": 0.3
 }
