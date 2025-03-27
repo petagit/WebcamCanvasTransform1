@@ -357,7 +357,7 @@ export default function FilteredWebcam({
         )}
         
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-red-900/50">
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/70">
             <p className="text-white text-center p-4">{error}</p>
           </div>
         )}
@@ -370,7 +370,7 @@ export default function FilteredWebcam({
         
         {isProcessing && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <div className="animate-spin w-8 h-8 border-4 border-zinc-100 border-t-transparent rounded-full"></div>
           </div>
         )}
         
@@ -395,7 +395,7 @@ export default function FilteredWebcam({
         {!isActive ? (
           <Button 
             onClick={startCamera}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-zinc-100/20 hover:bg-zinc-100/30 text-white"
             disabled={isProcessing}
           >
             <Camera size={16} />
@@ -404,8 +404,7 @@ export default function FilteredWebcam({
         ) : (
           <Button 
             onClick={stopCamera}
-            variant="destructive"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white"
           >
             <CameraOff size={16} />
             Stop Camera

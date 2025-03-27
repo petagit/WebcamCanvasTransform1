@@ -134,7 +134,7 @@ export default function ControlPanel({
               >
                 {isProcessing ? (
                   <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-zinc-100 border-t-transparent rounded-full" />
                     <span>Processing...</span>
                   </>
                 ) : (
