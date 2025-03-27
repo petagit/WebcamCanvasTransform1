@@ -177,7 +177,7 @@ function configurePassport() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session
+  // Configure session for traditional auth
   app.use(session({
     secret: process.env.SESSION_SECRET || 'pixelcam_session_secret',
     resave: false,
@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // Initialize Passport
+  // Initialize Passport for traditional auth
   app.use(passport.initialize());
   app.use(passport.session());
   configurePassport();

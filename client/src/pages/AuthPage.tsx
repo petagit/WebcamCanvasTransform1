@@ -1,92 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { FaGoogle, FaGithub } from "react-icons/fa";
-import { useAuth } from "../hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { SignIn, SignUp, useAuth } from "@clerk/clerk-react";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Camera, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function AuthPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [_, setLocation] = useLocation();
-  
-  const { user, loginMutation, registerMutation, isLoading } = useAuth();
-  
+  const { isSignedIn } = useAuth();
+  const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<"sign-in" | "sign-up">("sign-in");
+
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (isSignedIn) {
       setLocation("/");
     }
-  }, [user, setLocation]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!username || !password) {
-      setError("Username and password are required");
-      return;
-    }
-    
-    try {
-      loginMutation.mutate({ username, password });
-    } catch (err: any) {
-      setError(err.message || "Login failed");
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    
-    if (!username || !password || !confirmPassword || !email) {
-      setError("All fields are required");
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      setError("Passwords don't match");
-      return;
-    }
-    
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-    
-    try {
-      // Use the registerMutation from our auth hook
-      registerMutation.mutate({ 
-        username, 
-        password, 
-        email 
-      });
-    } catch (err: any) {
-      setError(err.message || "Registration failed");
-    }
-  };
-
-  const handleOAuthLogin = (provider: string) => {
-    // The OAuth routes in the server are /auth/google and /auth/github
-    window.location.href = `/auth/${provider}`;
-  };
+  }, [isSignedIn, setLocation]);
 
   // If already authenticated, we'll redirect
-  if (user) return null;
+  if (isSignedIn) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center p-4">
@@ -101,180 +35,67 @@ export default function AuthPage() {
             Back
           </Button>
           
-          <Card className="w-full max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">
+          <Card className="w-full max-w-md mx-auto bg-gray-900 border-gray-800">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-center text-white mb-6">
                 Welcome to PixelCam
-              </CardTitle>
-              <CardDescription className="text-center">
-                {activeTab === "login" 
-                  ? "Sign in to access your gallery and settings" 
-                  : "Create an account to save your creative work"}
-              </CardDescription>
-            </CardHeader>
-            
-            <Tabs defaultValue="login" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
+              </h2>
               
-              <TabsContent value="login">
-                <form onSubmit={handleLogin}>
-                  <CardContent className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    {error && (
-                      <div className="text-red-500 text-sm mt-2">{error}</div>
-                    )}
-                  </CardContent>
-                  
-                  <CardFooter className="flex flex-col gap-4">
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Signing in..." : "Sign In"}
-                    </Button>
-                    
-                    <div className="relative w-full flex items-center gap-2 my-2">
-                      <div className="flex-grow h-px bg-muted"></div>
-                      <span className="text-xs text-muted-foreground">OR CONTINUE WITH</span>
-                      <div className="flex-grow h-px bg-muted"></div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="flex items-center gap-2"
-                        onClick={() => handleOAuthLogin("google")}
-                      >
-                        <FaGoogle />
-                        <span>Google</span>
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="flex items-center gap-2"
-                        onClick={() => handleOAuthLogin("github")}
-                      >
-                        <FaGithub />
-                        <span>GitHub</span>
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="register">
-                <form onSubmit={handleRegister}>
-                  <CardContent className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-username">Username</Label>
-                      <Input
-                        id="reg-username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-password">Password</Label>
-                      <Input
-                        id="reg-password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    {error && (
-                      <div className="text-red-500 text-sm mt-2">{error}</div>
-                    )}
-                  </CardContent>
-                  
-                  <CardFooter className="flex flex-col gap-4">
-                    <Button 
-                      type="submit" 
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Creating Account..." : "Create Account"}
-                    </Button>
-                    
-                    <div className="relative w-full flex items-center gap-2 my-2">
-                      <div className="flex-grow h-px bg-muted"></div>
-                      <span className="text-xs text-muted-foreground">OR REGISTER WITH</span>
-                      <div className="flex-grow h-px bg-muted"></div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="flex items-center gap-2"
-                        onClick={() => handleOAuthLogin("google")}
-                      >
-                        <FaGoogle />
-                        <span>Google</span>
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="flex items-center gap-2"
-                        onClick={() => handleOAuthLogin("github")}
-                      >
-                        <FaGithub />
-                        <span>GitHub</span>
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </form>
-              </TabsContent>
-            </Tabs>
+              <Tabs 
+                value={activeTab} 
+                onValueChange={(value) => setActiveTab(value as "sign-in" | "sign-up")}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="sign-in">Sign In</TabsTrigger>
+                  <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
+                </TabsList>
+                <TabsContent value="sign-in">
+                  <SignIn 
+                    signUpUrl="#sign-up" 
+                    afterSignInUrl="/"
+                    redirectUrl="/"
+                    appearance={{
+                      elements: {
+                        formButtonPrimary: 
+                          "bg-blue-600 hover:bg-blue-700",
+                        formFieldInput: 
+                          "bg-gray-800 border-gray-700",
+                        card: "bg-transparent shadow-none border-0",
+                        headerTitle: "hidden",
+                        headerSubtitle: "hidden",
+                        dividerLine: "bg-gray-700",
+                        dividerText: "text-gray-400",
+                        footerActionLink: "text-blue-500 hover:text-blue-400",
+                      }
+                    }}
+                    routing="hash"
+                  />
+                </TabsContent>
+                <TabsContent value="sign-up">
+                  <SignUp 
+                    signInUrl="#sign-in" 
+                    afterSignUpUrl="/"
+                    redirectUrl="/"
+                    appearance={{
+                      elements: {
+                        formButtonPrimary: 
+                          "bg-blue-600 hover:bg-blue-700",
+                        formFieldInput: 
+                          "bg-gray-800 border-gray-700",
+                        card: "bg-transparent shadow-none border-0",
+                        headerTitle: "hidden",
+                        headerSubtitle: "hidden",
+                        dividerLine: "bg-gray-700",
+                        dividerText: "text-gray-400",
+                        footerActionLink: "text-blue-500 hover:text-blue-400",
+                      }
+                    }}
+                    routing="hash"
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
           </Card>
         </div>
         

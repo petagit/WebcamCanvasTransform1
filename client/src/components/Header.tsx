@@ -1,7 +1,7 @@
 import React from "react";
 import { Camera, HelpCircle, ImageIcon, LogOut } from "lucide-react";
 import { Link } from "wouter";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "../lib/clerk-provider"; // Import from clerk-provider instead
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
