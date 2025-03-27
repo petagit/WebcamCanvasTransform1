@@ -40,9 +40,10 @@ export async function clerkMiddleware(req: Request, res: Response, next: NextFun
     const clerkUser = await clerk.users.getUser(session.userId);
     
     // Attach the Clerk user to the request object using a special key
+    // Use email as username when available
     const userData: ClerkUserData = {
       id: clerkUser.id,
-      username: clerkUser.username || clerkUser.firstName || 'User',
+      username: clerkUser.emailAddresses[0]?.emailAddress || clerkUser.username || clerkUser.firstName || 'User',
       email: clerkUser.emailAddresses[0]?.emailAddress || null,
       profileImageUrl: clerkUser.profileImageUrl || null,
     };

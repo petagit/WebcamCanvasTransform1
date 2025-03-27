@@ -35,15 +35,20 @@ export default function Header({ onHelpClick }: HeaderProps) {
           </button>
 
           {user ? (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-white hover:text-red-400"
-              onClick={() => logoutMutation.mutate()}
-            >
-              <LogOut className="h-5 w-5 mr-1" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-white hidden md:inline text-sm truncate max-w-[150px]">
+                {user.username}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-white hover:text-red-400"
+                onClick={() => logoutMutation.mutate()}
+              >
+                <LogOut className="h-5 w-5 mr-1" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           ) : (
             <Link href="/auth">
               <Button 

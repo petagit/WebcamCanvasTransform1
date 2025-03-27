@@ -68,9 +68,10 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const { signUp } = useSignUp();
   
   // Convert Clerk user to our app's user type
+  // Use email as username when available, fallback to other options
   const user: User | null = clerkUser ? {
     id: clerkUser.id,
-    username: clerkUser.username || clerkUser.firstName || 'User',
+    username: clerkUser.emailAddresses[0]?.emailAddress || clerkUser.username || clerkUser.firstName || 'User',
     email: clerkUser.emailAddresses[0]?.emailAddress || null,
     authProvider: 'clerk',
     profilePicture: clerkUser.imageUrl || null,
