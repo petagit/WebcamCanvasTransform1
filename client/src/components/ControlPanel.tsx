@@ -101,13 +101,13 @@ export default function ControlPanel({
         <div className="p-4 space-y-4">
           <div className="flex items-center space-x-2">
             <Button 
-              className={isWebcamSource ? "flex-1 bg-app-blue" : "flex-1 bg-gray-700 hover:bg-gray-600"}
+              className={isWebcamSource ? "flex-1 bg-zinc-100/20" : "flex-1 bg-gray-700 hover:bg-gray-600"}
               onClick={() => toggleSourceType(true)}
             >
               Webcam
             </Button>
             <Button 
-              className={!isWebcamSource ? "flex-1 bg-app-blue" : "flex-1 bg-gray-700 hover:bg-gray-600"}
+              className={!isWebcamSource ? "flex-1 bg-zinc-100/20" : "flex-1 bg-gray-700 hover:bg-gray-600"}
               onClick={() => toggleSourceType(false)}
             >
               Upload Video
@@ -128,7 +128,7 @@ export default function ControlPanel({
                   hover:file:bg-gray-600"
               />
               <Button 
-                className="w-full bg-app-blue hover:bg-blue-600 mt-2 flex items-center justify-center space-x-2"
+                className="w-full bg-zinc-100/20 hover:bg-zinc-100/30 mt-2 flex items-center justify-center space-x-2"
                 onClick={handleApplyFilter}
                 disabled={isProcessing}
               >
@@ -214,7 +214,7 @@ export default function ControlPanel({
               <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
                 <RadioGroupItem id="option-circle" value="circle" className="sr-only" />
                 <Label htmlFor="option-circle" className="flex flex-col items-center cursor-pointer w-full">
-                  <Circle className={`h-6 w-6 ${filterSettings.dotShape === 'circle' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <Circle className={`h-6 w-6 ${filterSettings.dotShape === 'circle' ? 'text-zinc-100' : 'text-gray-400'}`} />
                   <span className="text-xs mt-1">Circle</span>
                 </Label>
               </div>
@@ -222,7 +222,7 @@ export default function ControlPanel({
               <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
                 <RadioGroupItem id="option-square" value="square" className="sr-only" />
                 <Label htmlFor="option-square" className="flex flex-col items-center cursor-pointer w-full">
-                  <Square className={`h-6 w-6 ${filterSettings.dotShape === 'square' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <Square className={`h-6 w-6 ${filterSettings.dotShape === 'square' ? 'text-zinc-100' : 'text-gray-400'}`} />
                   <span className="text-xs mt-1">Square</span>
                 </Label>
               </div>
@@ -230,7 +230,7 @@ export default function ControlPanel({
               <div className="flex items-center space-x-2 bg-gray-800 rounded p-2 cursor-pointer hover:bg-gray-700">
                 <RadioGroupItem id="option-cross" value="cross" className="sr-only" />
                 <Label htmlFor="option-cross" className="flex flex-col items-center cursor-pointer w-full">
-                  <X className={`h-6 w-6 ${filterSettings.dotShape === 'cross' ? 'text-app-blue' : 'text-gray-400'}`} />
+                  <X className={`h-6 w-6 ${filterSettings.dotShape === 'cross' ? 'text-zinc-100' : 'text-gray-400'}`} />
                   <span className="text-xs mt-1">Cross</span>
                 </Label>
               </div>
@@ -292,13 +292,13 @@ export default function ControlPanel({
             <Label className="block text-label mb-2">Filter Type</Label>
             <div className="grid grid-cols-2 gap-2">
               <Button 
-                className={filterSettings.isGrayscale ? "bg-app-blue text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
+                className={filterSettings.isGrayscale ? "bg-zinc-100/20 text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
                 onClick={() => toggleFilterType(true)}
               >
                 Grayscale
               </Button>
               <Button 
-                className={!filterSettings.isGrayscale ? "bg-app-blue text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
+                className={!filterSettings.isGrayscale ? "bg-zinc-100/20 text-white font-medium" : "bg-gray-700 hover:bg-gray-600 text-white font-medium"}
                 onClick={() => toggleFilterType(false)}
               >
                 Color
@@ -315,7 +315,7 @@ export default function ControlPanel({
         </div>
         <div className="p-4 space-y-4">
           <Button 
-            className="w-full flex items-center justify-center space-x-2 bg-app-green hover:bg-green-600"
+            className="w-full flex items-center justify-center space-x-2 bg-zinc-100/20 hover:bg-zinc-100/30"
             disabled={!cameraReady}
             onClick={() => downloadAsJpg("previewCanvas")}
           >
@@ -324,7 +324,7 @@ export default function ControlPanel({
           </Button>
           
           <Button 
-            className="w-full flex items-center justify-center space-x-2 bg-app-green hover:bg-green-600"
+            className="w-full flex items-center justify-center space-x-2 bg-zinc-100/20 hover:bg-zinc-100/30"
             disabled={capturedItems.filter(item => item.type === "video").length === 0}
           >
             <Download className="h-5 w-5" />

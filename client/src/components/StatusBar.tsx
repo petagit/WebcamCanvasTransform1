@@ -92,7 +92,7 @@ export default function StatusBar({
         </span>
       </div>
       {status.showTimer && (
-        <div className="text-primary font-mono text-xs">{time}</div>
+        <div className="text-zinc-100 font-mono text-xs">{time}</div>
       )}
     </div>
   );

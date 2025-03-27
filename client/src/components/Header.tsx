@@ -17,7 +17,7 @@ export default function Header({ onHelpClick }: HeaderProps) {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Link href="/" className="flex items-center space-x-2">
-            <h1 className="text-3xl font-serif text-primary">PixelCam</h1>
+            <h1 className="text-3xl font-serif text-zinc-100">PixelCam</h1>
           </Link>
         </div>
         <div className="flex items-center space-x-4">

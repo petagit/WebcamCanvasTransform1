@@ -223,13 +223,13 @@ export default function Home() {
                 className="w-full"
               >
                 <TabsList className="w-full mb-4 bg-background/40">
-                  <TabsTrigger value="camera" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-primary">Camera</TabsTrigger>
-                  <TabsTrigger value="image" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-primary">Upload Image</TabsTrigger>
+                  <TabsTrigger value="camera" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-zinc-100">Camera</TabsTrigger>
+                  <TabsTrigger value="image" className="flex-1 text-xs uppercase tracking-wider data-[state=active]:text-zinc-100">Upload Image</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="camera" className="space-y-6">
                   <div>
-                    <h3 className="text-xl font-serif text-primary mb-2">Filtered Camera</h3>
+                    <h3 className="text-xl font-serif text-zinc-100 mb-2">Filtered Camera</h3>
                     <p className="text-sm text-foreground/70 mb-3">This applies the dot matrix filter directly to the video.</p>
                     <div className="relative">
                       <FilteredWebcam
@@ -251,7 +251,7 @@ export default function Home() {
                 
                 <TabsContent value="image" className="space-y-6">
                   <div>
-                    <h3 className="text-xl font-serif text-primary mb-2">Upload Image</h3>
+                    <h3 className="text-xl font-serif text-zinc-100 mb-2">Upload Image</h3>
                     <p className="text-sm text-foreground/70 mb-3">Upload an image and apply the dot matrix filter to it.</p>
                     <ImageUploader
                       onImageFiltered={handleCaptureImage}
