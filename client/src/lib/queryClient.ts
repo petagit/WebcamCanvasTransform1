@@ -33,8 +33,15 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // Get the active session token for Clerk authentication
+  // Always get a fresh token for each request
   const sessionToken = await getClerkToken();
+  
+  // Debug authentication status
+  if (!sessionToken) {
+    console.warn(`API request to ${url} is being made without authentication token`);
+  } else {
+    console.log(`API request to ${url} with auth token available`);
+  }
   
   // Prepare headers with auth token when available
   const headers: Record<string, string> = {};
@@ -47,15 +54,24 @@ export async function apiRequest(
     headers["Authorization"] = `Bearer ${sessionToken}`;
   }
   
-  const res = await fetch(url, {
-    method,
-    headers: headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    if (!res.ok) {
+      console.error(`API error on ${url}:`, res.status, res.statusText);
+    }
+    
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error(`Error in API request to ${url}:`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
