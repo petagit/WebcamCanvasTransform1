@@ -22,9 +22,13 @@ const CLERK_USER_KEY = 'clerkUserData';
 // Middleware to authenticate requests with Clerk
 export async function clerkMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
+    console.log("Clerk auth middleware - path:", req.path);
+    console.log("Clerk auth middleware - headers:", JSON.stringify(req.headers, null, 2));
+    
     // Get the session token from the Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader) {
+      console.log("No authorization header found");
       return res.status(401).json({ error: "Unauthorized - No token provided" });
     }
     
@@ -33,15 +37,29 @@ export async function clerkMiddleware(req: Request, res: Response, next: NextFun
       ? authHeader.substring(7) 
       : authHeader;
     
+    console.log("Token format:", authHeader.startsWith('Bearer ') ? "Bearer token" : "Plain token");
+    console.log("Token length:", sessionToken?.length || 0);
+    
     if (!sessionToken || sessionToken === 'undefined' || sessionToken === 'null') {
+      console.log("Invalid token format:", sessionToken);
       return res.status(401).json({ error: "Unauthorized - Invalid token format" });
     }
 
     // Verify the session token with Clerk
-    const session = await clerk.sessions.getSession(sessionToken);
-    
-    if (!session) {
-      return res.status(401).json({ error: "Unauthorized - Session not found" });
+    console.log("Attempting to verify token with Clerk...");
+    let session;
+    try {
+      session = await clerk.sessions.getSession(sessionToken);
+      
+      if (!session) {
+        console.log("No session found for token");
+        return res.status(401).json({ error: "Unauthorized - Session not found" });
+      }
+      
+      console.log("Session verified successfully, user ID:", session.userId);
+    } catch (clerkError) {
+      console.error("Clerk verification error:", clerkError);
+      return res.status(401).json({ error: "Unauthorized - Invalid session token" });
     }
 
     // Get the user's information from Clerk

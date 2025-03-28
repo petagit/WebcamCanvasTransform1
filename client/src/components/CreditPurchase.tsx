@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +6,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+
+// Extended Clerk type definition
+declare global {
+  interface Window {
+    Clerk?: {
+      session?: {
+        getToken: (options?: { template?: string }) => Promise<string | null>;
+        id?: string;
+        lastActiveAt?: string;
+      };
+      user?: {
+        id?: string;
+      };
+    };
+  }
+}
 
 // Load stripe outside component render cycle
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
@@ -52,7 +68,49 @@ function PackageSelection({ onSelectPackage }: { onSelectPackage: (packageId: st
 export default function CreditPurchase({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  // Debug auth status on component mount
+  useEffect(() => {
+    async function checkAuth() {
+      if (!window.Clerk) {
+        setDebugInfo("Clerk not available");
+        return;
+      }
+
+      try {
+        const isSignedIn = window.Clerk.user?.id ? true : false;
+        const sessionId = window.Clerk.session?.id || "No session ID";
+        const lastActiveTime = window.Clerk.session?.lastActiveAt 
+          ? new Date(window.Clerk.session.lastActiveAt).toLocaleTimeString()
+          : "Unknown";
+          
+        // Try to get a token
+        let tokenAvailable = false;
+        let tokenLength = 0;
+        try {
+          const token = await window.Clerk.session?.getToken();
+          tokenAvailable = !!token;
+          tokenLength = token?.length || 0;
+        } catch (e) {
+          console.error("Error getting token:", e);
+        }
+        
+        setDebugInfo(
+          `Auth Status: ${isSignedIn ? "Signed In" : "Not Signed In"}\n` +
+          `Session ID: ${sessionId}\n` +
+          `Last Active: ${lastActiveTime}\n` +
+          `Token Available: ${tokenAvailable}\n` +
+          `Token Length: ${tokenLength}`
+        );
+      } catch (e) {
+        setDebugInfo(`Error checking auth: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    
+    checkAuth();
+  }, []);
   
   const handleSelectPackage = async (packageId: string) => {
     setIsLoading(true);
@@ -148,6 +206,13 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
         <div className="mb-6 p-4 border border-destructive/30 bg-destructive/10 rounded text-destructive text-sm">
           <p><strong>Error:</strong> {errorMessage}</p>
           <p className="text-xs mt-1 text-destructive/80">Please make sure you're logged in and try again.</p>
+        </div>
+      )}
+      
+      {debugInfo && (
+        <div className="mb-6 p-4 border border-border/30 bg-muted/20 rounded text-muted-foreground text-xs">
+          <p className="font-medium mb-1">Auth Debug Info:</p>
+          <pre className="whitespace-pre-wrap">{debugInfo}</pre>
         </div>
       )}
       
