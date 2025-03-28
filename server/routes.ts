@@ -17,9 +17,24 @@ import { clerkMiddleware, requireAuth as clerkRequireAuth, getClerkUser } from "
 dotenv.config();
 
 // Initialize Stripe
-const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any })
-  : null;
+let stripe: Stripe | null = null;
+
+try {
+  // Check if the key looks like a real Stripe key (starts with sk_)
+  const secretKey = process.env.STRIPE_SECRET_KEY || '';
+  
+  if (secretKey && (secretKey.startsWith('sk_test_') || secretKey.startsWith('sk_live_'))) {
+    stripe = new Stripe(secretKey, { apiVersion: '2023-10-16' as any });
+    console.log("Stripe initialized successfully with key type:", 
+      secretKey.startsWith('sk_test_') ? 'test key' : 'live key');
+  } else {
+    console.error("Missing or invalid Stripe secret key. Payments will not work.");
+    console.error("The key should start with sk_live_ or sk_test_ but found:", 
+      secretKey ? `${secretKey.substring(0, 7)}...` : 'undefined');
+  }
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error);
+}
   
 // Credit package definitions - must match the packages defined in the client
 const CREDIT_PACKAGES = [
@@ -783,12 +798,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Direct checkout endpoint that doesn't use Clerk auth for troubleshooting
   app.post("/api/checkout/direct-session", async (req: Request, res: Response) => {
+    console.log("Direct checkout endpoint called");
+    
     if (!stripe) {
-      return res.status(500).json({ error: "Stripe is not configured" });
+      console.error("Stripe is not properly configured. STRIPE_SECRET_KEY may be missing or invalid.");
+      return res.status(500).json({ 
+        error: "Payment system is not configured", 
+        details: "The application is missing payment credentials. Please contact support."
+      });
     }
     
     try {
       console.log("Direct checkout endpoint called, bypassing Clerk auth");
+      console.log("Stripe instance available:", !!stripe);
+      
+      if (!stripe) {
+        console.error("Stripe is not configured properly. Check STRIPE_SECRET_KEY.");
+        return res.status(500).json({ 
+          error: "Stripe is not configured properly",
+          details: "Server configuration issue with payment processor"
+        });
+      }
       
       const { packageId, email } = req.body;
       
@@ -801,6 +831,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!selectedPackage) {
         return res.status(400).json({ error: "Invalid package ID" });
       }
+      
+      console.log("Processing package:", selectedPackage.id);
       
       // Use a temporary user ID for testing only
       const mockUserId = 9999;
@@ -845,7 +877,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error creating direct checkout session:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      let errorMessage = "Failed to create checkout session";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({ 
+        error: errorMessage,
+        details: "This might be due to a missing or invalid Stripe secret key"
+      });
     }
   });
   

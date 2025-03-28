@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Extended Clerk type definition
 declare global {
+  // Extended Window interface to include Clerk properties for TypeScript
   interface Window {
     Clerk?: {
       session?: {
@@ -82,25 +83,50 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
       }
 
       try {
-        const isSignedIn = window.Clerk.user?.id ? true : false;
-        const sessionId = window.Clerk.session?.id || "No session ID";
-        const lastActiveTime = window.Clerk.session?.lastActiveAt 
-          ? new Date(window.Clerk.session.lastActiveAt).toLocaleTimeString()
-          : "Unknown";
+        let isSignedIn = false;
+        let userId = "Unknown";
+        let sessionId = "No session ID";
+        let lastActiveTime = "Unknown";
+        
+        // Access properties safely with type checking
+        if (window.Clerk) {
+          const clerk = window.Clerk;
+          
+          // Check if user exists and has ID
+          if (clerk.user && 'id' in clerk.user) {
+            isSignedIn = !!clerk.user.id;
+            userId = clerk.user.id || "No ID";
+          }
+          
+          // Check if session exists and has properties
+          if (clerk.session) {
+            if ('id' in clerk.session) {
+              sessionId = clerk.session.id || "No session ID";
+            }
+            
+            if ('lastActiveAt' in clerk.session && clerk.session.lastActiveAt) {
+              lastActiveTime = new Date(clerk.session.lastActiveAt).toLocaleTimeString();
+            }
+          }
+        }
           
         // Try to get a token
         let tokenAvailable = false;
         let tokenLength = 0;
         try {
-          const token = await window.Clerk.session?.getToken();
-          tokenAvailable = !!token;
-          tokenLength = token?.length || 0;
+          // Type-safe check for getToken method
+          if (window.Clerk?.session?.getToken) {
+            const token = await window.Clerk.session.getToken();
+            tokenAvailable = !!token;
+            tokenLength = token?.length || 0;
+          }
         } catch (e) {
           console.error("Error getting token:", e);
         }
         
         setDebugInfo(
           `Auth Status: ${isSignedIn ? "Signed In" : "Not Signed In"}\n` +
+          `User ID: ${userId}\n` +
           `Session ID: ${sessionId}\n` +
           `Last Active: ${lastActiveTime}\n` +
           `Token Available: ${tokenAvailable}\n` +
@@ -210,7 +236,11 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
       {errorMessage && (
         <div className="mb-6 p-4 border border-destructive/30 bg-destructive/10 rounded text-destructive text-sm">
           <p><strong>Error:</strong> {errorMessage}</p>
-          <p className="text-xs mt-1 text-destructive/80">Please make sure you're logged in and try again.</p>
+          <p className="text-xs mt-1 text-destructive/80">
+            {errorMessage.includes("Payment system is not configured") ? 
+              "The payment system is currently unavailable. Please try again later or contact support." : 
+              "Please make sure you're logged in and try again."}
+          </p>
         </div>
       )}
       
