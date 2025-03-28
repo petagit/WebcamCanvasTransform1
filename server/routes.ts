@@ -876,12 +876,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       stripeKey.startsWith('sk_test_') ? 'TEST' : 
       'INVALID/MISSING');
     
-    if (!stripe) {
-      console.error("Stripe is not properly configured. STRIPE_SECRET_KEY may be missing or invalid.");
-      console.error("Key prefix:", stripeKey.substring(0, 8));
+    try {
+      if (!stripe) {
+        console.error("Stripe is not properly configured. STRIPE_SECRET_KEY may be missing or invalid.");
+        console.error("Key prefix:", stripeKey ? stripeKey.substring(0, 8) : 'undefined');
+        
+        // Force recreate the Stripe client on demand with error handling
+        if (stripeKey && (stripeKey.startsWith('sk_test_') || stripeKey.startsWith('sk_live_'))) {
+          console.log("Attempting to recreate Stripe client on demand...");
+          try {
+            const recreatedStripe = new Stripe(stripeKey, { 
+              apiVersion: '2023-10-16' as Stripe.LatestApiVersion 
+            });
+            
+            // Test the client with a simple API call
+            const test = await recreatedStripe.customers.list({ limit: 1 });
+            
+            // If we get here, the client works
+            console.log("Successfully recreated Stripe client with API key!");
+            stripe = recreatedStripe; // Replace the global instance
+          } catch (recreateError) {
+            console.error("Failed to recreate Stripe client:", recreateError);
+          }
+        }
+        
+        // If we still don't have a Stripe client, return error
+        if (!stripe) {
+          return res.status(500).json({ 
+            error: "Payment system is not configured", 
+            details: "The application is missing payment credentials. Please contact support."
+          });
+        }
+      }
+    } catch (initError) {
+      console.error("Error initializing Stripe in checkout endpoint:", initError);
       return res.status(500).json({ 
-        error: "Payment system is not configured", 
-        details: "The application is missing payment credentials. Please contact support."
+        error: "Payment system error",
+        details: "Error initializing payment system"
       });
     }
     

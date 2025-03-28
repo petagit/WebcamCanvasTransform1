@@ -25,13 +25,18 @@ declare global {
 }
 
 // Load stripe outside component render cycle with robust error handling
-let stripePromise = null;
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+// Use a hardcoded key because Vite environment variables might not work in production
+const STRIPE_PUBLIC_KEY = "pk_live_51R62jHP8bQI1a1tryYLifm1N8jCRSg9BVq94r564A3h8WAUfus4lDmPxcCLUVndUCuKgtE8Kr758Hdj013RNfnyZ0015B4KwIj";
+const stripeKey = STRIPE_PUBLIC_KEY;
+console.log("Using hardcoded Stripe public key to avoid env variable issues");
+
+// Create a properly typed stripe promise
+let stripePromise: Promise<any> | null = null;
 
 try {
   // Validate Stripe key format before attempting to load Stripe
   if (!stripeKey) {
-    console.error("Missing Stripe public key (VITE_STRIPE_PUBLIC_KEY). Payments will not work.");
+    console.error("Missing Stripe public key. Payments will not work.");
   } else if (!stripeKey.startsWith('pk_')) {
     console.error("Invalid Stripe public key format. Key should start with 'pk_'.");
     console.error("Actual key prefix:", stripeKey.substring(0, 4));
