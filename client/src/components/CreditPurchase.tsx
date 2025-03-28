@@ -59,13 +59,41 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
     setErrorMessage(null);
 
     try {
+      // Make sure Clerk is initialized
+      if (!window.Clerk || !window.Clerk.session) {
+        console.error("Clerk not initialized or user not logged in");
+        setErrorMessage("You must be logged in to purchase credits");
+        throw new Error("Authentication service unavailable");
+      }
+      
+      // Check if user is logged in
+      const isLoggedIn = await window.Clerk.session.getToken()
+        .then(token => !!token)
+        .catch(() => false);
+        
+      if (!isLoggedIn) {
+        console.error("User not logged in");
+        setErrorMessage("Please log in to continue");
+        throw new Error("Not authenticated");
+      }
+      
       // Get a fresh token before making the request
-      const token = await window.Clerk?.session?.getToken();
+      const token = await window.Clerk.session.getToken();
       console.log("Auth token available:", !!token);
       
-      // Call our backend to create a Checkout Session
-      const response = await apiRequest('POST', '/api/checkout/create-session', { 
-        packageId 
+      if (!token) {
+        setErrorMessage("Authentication failed. Please try logging out and back in.");
+        throw new Error("No authentication token available");
+      }
+      
+      // Call our backend to create a Checkout Session with explicit token in headers
+      const response = await fetch('/api/checkout/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ packageId })
       });
       
       if (!response.ok) {

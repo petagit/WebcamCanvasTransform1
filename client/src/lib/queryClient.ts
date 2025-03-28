@@ -5,7 +5,7 @@ declare global {
   interface Window {
     Clerk?: {
       session?: {
-        getToken: () => Promise<string | null>;
+        getToken: (options?: { template?: string }) => Promise<string | null>;
       };
     };
   }
