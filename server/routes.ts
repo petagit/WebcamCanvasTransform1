@@ -20,6 +20,13 @@ dotenv.config();
 const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any })
   : null;
+  
+// Credit package definitions - must match the packages defined in the client
+const CREDIT_PACKAGES = [
+  { id: 'basic', name: 'Basic', credits: 50, amount: 499, formattedPrice: '$4.99', description: '50 credits for image processing' },
+  { id: 'plus', name: 'Plus', credits: 150, amount: 999, formattedPrice: '$9.99', description: '150 credits for image processing' },
+  { id: 'premium', name: 'Premium', credits: 500, amount: 1999, formattedPrice: '$19.99', description: '500 credits for image processing' }
+];
 
 // User authentication middleware
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -772,6 +779,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Redirect to the new endpoint
     req.url = '/api/checkout/create-session';
     app._router.handle(req, res);
+  });
+  
+  // Direct checkout endpoint that doesn't use Clerk auth for troubleshooting
+  app.post("/api/checkout/direct-session", async (req: Request, res: Response) => {
+    if (!stripe) {
+      return res.status(500).json({ error: "Stripe is not configured" });
+    }
+    
+    try {
+      console.log("Direct checkout endpoint called, bypassing Clerk auth");
+      
+      const { packageId, email } = req.body;
+      
+      if (!packageId) {
+        return res.status(400).json({ error: "Package ID is required" });
+      }
+      
+      // Get the package information
+      const selectedPackage = CREDIT_PACKAGES.find(pkg => pkg.id === packageId);
+      if (!selectedPackage) {
+        return res.status(400).json({ error: "Invalid package ID" });
+      }
+      
+      // Use a temporary user ID for testing only
+      const mockUserId = 9999;
+      
+      // Create a Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: selectedPackage.name,
+                description: selectedPackage.description,
+              },
+              unit_amount: selectedPackage.amount, // Amount in cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.HOST_URL || req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.HOST_URL || req.headers.origin}/payment-cancel`,
+        customer_email: email || undefined,
+        metadata: {
+          userId: mockUserId.toString(),
+          credits: selectedPackage.credits.toString(),
+          packageId
+        },
+      });
+      
+      // Return the session ID
+      res.json({
+        sessionId: session.id,
+        amount: selectedPackage.amount,
+        credits: selectedPackage.credits
+      });
+    } catch (error) {
+      console.error("Error creating direct checkout session:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
   });
   
   // Handle successful checkout
