@@ -8,6 +8,8 @@ import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import AuthPage from "@/pages/AuthPage";
 import Subscription from "@/pages/Subscription";
+import PaymentSuccess from "@/pages/PaymentSuccess";
+import PaymentCancel from "@/pages/PaymentCancel";
 import { Loader2 } from "lucide-react";
 
 // Protected route component
@@ -53,6 +55,15 @@ function Router() {
       <Route path="/subscription/cancel">
         <ProtectedRoute component={Subscription} />
       </Route>
+      
+      {/* Payment routes */}
+      <Route path="/payment-success">
+        <ProtectedRoute component={PaymentSuccess} />
+      </Route>
+      <Route path="/payment-cancel">
+        <ProtectedRoute component={PaymentCancel} />
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );

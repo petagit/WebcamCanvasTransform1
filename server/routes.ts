@@ -680,8 +680,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Purchase credits with Stripe
-  app.post("/api/credits/purchase", clerkRequireAuth, async (req: Request, res: Response) => {
+  // Purchase credits with Stripe Checkout
+  app.post("/api/checkout/create-session", clerkRequireAuth, async (req: Request, res: Response) => {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
@@ -691,9 +691,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Define credit packages
       const creditPackages = {
-        'basic': { credits: 50, amount: 499 },    // $4.99 for 50 credits
-        'plus': { credits: 150, amount: 999 },    // $9.99 for 150 credits
-        'premium': { credits: 500, amount: 1999 } // $19.99 for 500 credits
+        'basic': { 
+          credits: 50, 
+          amount: 499, 
+          name: 'Basic Credit Package',
+          description: '50 credits for image processing'
+        },
+        'plus': { 
+          credits: 150, 
+          amount: 999,
+          name: 'Plus Credit Package',
+          description: '150 credits for image processing'
+        },
+        'premium': { 
+          credits: 500, 
+          amount: 1999,
+          name: 'Premium Credit Package',
+          description: '500 credits for image processing'  
+        }
       };
       
       // Validate package selection
@@ -713,27 +728,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Create a payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: selectedPackage.amount,
-        currency: 'usd',
+      // Create a Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: selectedPackage.name,
+                description: selectedPackage.description,
+              },
+              unit_amount: selectedPackage.amount, // Amount in cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.HOST_URL || req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.HOST_URL || req.headers.origin}/payment-cancel`,
+        customer_email: clerkUser.email || undefined,
         metadata: {
           userId: user.id.toString(),
           credits: selectedPackage.credits.toString(),
           packageId
         },
-        receipt_email: clerkUser.email || undefined,
-        automatic_payment_methods: { enabled: true }
       });
       
+      // Return the session ID
       res.json({
-        clientSecret: paymentIntent.client_secret,
+        sessionId: session.id,
         amount: selectedPackage.amount,
         credits: selectedPackage.credits
       });
     } catch (error) {
-      console.error("Error creating payment intent:", error);
-      res.status(500).json({ error: "Failed to create payment intent" });
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+  
+  // Keep the old endpoint for compatibility (redirect to the new implementation)
+  app.post("/api/credits/purchase", clerkRequireAuth, (req: Request, res: Response) => {
+    // Redirect to the new endpoint
+    req.url = '/api/checkout/create-session';
+    app._router.handle(req, res);
+  });
+  
+  // Handle successful checkout
+  app.post("/api/checkout/success", clerkRequireAuth, async (req: Request, res: Response) => {
+    if (!stripe) {
+      return res.status(500).json({ error: "Stripe is not configured" });
+    }
+    
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Missing session ID" });
+      }
+      
+      // Retrieve the session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['line_items', 'payment_intent']
+      });
+      
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      // Verify payment status
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ 
+          error: "Payment not completed", 
+          status: session.payment_status 
+        });
+      }
+      
+      // Extract user ID and credits from metadata
+      const userId = session.metadata?.userId;
+      const creditsToAdd = session.metadata?.credits;
+      
+      if (!userId || !creditsToAdd) {
+        return res.status(400).json({ error: "Invalid session metadata" });
+      }
+      
+      // Get the authenticated user
+      const clerkUser = getClerkUser(req);
+      if (!clerkUser || !clerkUser.email) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const user = await storage.getUserByEmail(clerkUser.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Verify the authenticated user matches the payment metadata
+      if (user.id.toString() !== userId) {
+        return res.status(403).json({ error: "User mismatch" });
+      }
+      
+      // Get current credits and add the purchased amount
+      const currentCredits = await storage.getUserCredits(user.id);
+      const credits = parseInt(creditsToAdd, 10);
+      
+      // Update user credits
+      await storage.updateUserCredits(user.id, currentCredits + credits);
+      
+      // Record the transaction
+      await storage.createTransaction({
+        userId: user.id,
+        amount: credits,
+        type: 'purchase',
+        description: `Purchased ${credits} credits`
+      });
+      
+      // Return success response
+      res.json({
+        success: true,
+        credits: credits,
+        totalCredits: currentCredits + credits
+      });
+    } catch (error) {
+      console.error("Error processing checkout success:", error);
+      res.status(500).json({ error: "Failed to process payment" });
     }
   });
 
