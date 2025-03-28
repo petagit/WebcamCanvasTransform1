@@ -805,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use a temporary user ID for testing only
       const mockUserId = 9999;
       
-      // Create a Checkout Session
+      // Create a Checkout Session with clear product name showing the credits
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
@@ -813,8 +813,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: selectedPackage.name,
-                description: selectedPackage.description,
+                name: `${selectedPackage.name} Credit Package`,
+                description: `${selectedPackage.credits} credits for image processing`,
+                metadata: {
+                  credits: selectedPackage.credits.toString(),
+                },
               },
               unit_amount: selectedPackage.amount, // Amount in cents
             },
@@ -831,6 +834,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           packageId
         },
       });
+      
+      console.log(`Created checkout session ${session.id} for ${selectedPackage.credits} credits`);
       
       // Return the session ID
       res.json({
@@ -1033,6 +1038,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
+      console.log(`Processing payment intent ${paymentIntent.id} for user ${userId} with ${credits} credits`);
+      
+      // For mock/anonymous purchases during testing, we'll skip the database update
+      if (userId === '9999') {
+        console.log("Skipping database update for test purchase with mockUserId");
+        return;
+      }
+      
       const user = await storage.getUser(parseInt(userId, 10));
       if (!user) {
         console.error("User not found for payment intent:", paymentIntent.id);
@@ -1054,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Purchased ${creditsToAdd} credits`
       });
       
-      console.log(`Credits added: ${creditsToAdd} to user ID: ${userId}`);
+      console.log(`Credits added: ${creditsToAdd} to user ID: ${userId}. New balance: ${currentCredits + creditsToAdd}`);
     } catch (error) {
       console.error("Error processing payment success:", error);
     }
