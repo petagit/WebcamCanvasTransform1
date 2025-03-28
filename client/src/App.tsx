@@ -56,13 +56,9 @@ function Router() {
         <ProtectedRoute component={Subscription} />
       </Route>
       
-      {/* Payment routes */}
-      <Route path="/payment-success">
-        <ProtectedRoute component={PaymentSuccess} />
-      </Route>
-      <Route path="/payment-cancel">
-        <ProtectedRoute component={PaymentCancel} />
-      </Route>
+      {/* Payment routes - deliberately not protected to handle anonymous checkout */}
+      <Route path="/payment-success" component={PaymentSuccess} />
+      <Route path="/payment-cancel" component={PaymentCancel} />
       
       <Route component={NotFound} />
     </Switch>

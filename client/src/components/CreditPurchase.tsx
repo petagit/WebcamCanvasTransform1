@@ -24,7 +24,9 @@ declare global {
 }
 
 // Load stripe outside component render cycle
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+console.log("Using Stripe public key:", stripeKey ? stripeKey.substring(0, 7) + '...' : 'undefined');
+const stripePromise = loadStripe(stripeKey);
 
 // Credit package definitions
 const CREDIT_PACKAGES = [
