@@ -142,16 +142,26 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<string>("select");
   const { toast } = useToast();
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
   const handleSelectPackage = async (packageId: string) => {
     setIsLoading(true);
     setSelectedPackage(packageId);
+    setErrorMessage(null);
 
     try {
+      // Get a fresh token before making the request
+      const token = await window.Clerk?.session?.getToken();
+      console.log("Auth token available:", !!token);
+      
       const response = await apiRequest('POST', '/api/credits/purchase', { packageId });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment intent');
+        const errorMsg = errorData.error || 'Failed to create payment intent';
+        console.error('Payment error:', errorMsg);
+        setErrorMessage(errorMsg);
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -159,9 +169,11 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
       setActiveTab("payment");
     } catch (error) {
       console.error('Error creating payment intent:', error);
+      const message = error instanceof Error ? error.message : "Failed to initialize payment";
+      setErrorMessage(message);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to initialize payment",
+        title: "Payment Error",
+        description: message,
         variant: "destructive",
       });
       setSelectedPackage(null);
@@ -200,6 +212,13 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="select" className="pt-4">
+          {errorMessage && (
+            <div className="mb-4 p-3 border border-destructive/30 bg-destructive/10 rounded text-destructive text-sm">
+              <p><strong>Error:</strong> {errorMessage}</p>
+              <p className="text-xs mt-1 text-destructive/80">Please make sure you're logged in and try again.</p>
+            </div>
+          )}
+          
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

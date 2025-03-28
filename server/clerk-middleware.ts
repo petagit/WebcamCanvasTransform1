@@ -23,17 +23,25 @@ const CLERK_USER_KEY = 'clerkUserData';
 export async function clerkMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     // Get the session token from the Authorization header
-    const sessionToken = req.headers.authorization?.split(' ')[1];
-    
-    if (!sessionToken) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
       return res.status(401).json({ error: "Unauthorized - No token provided" });
+    }
+    
+    // Handle both "Bearer token" and just "token" formats
+    const sessionToken = authHeader.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    if (!sessionToken || sessionToken === 'undefined' || sessionToken === 'null') {
+      return res.status(401).json({ error: "Unauthorized - Invalid token format" });
     }
 
     // Verify the session token with Clerk
     const session = await clerk.sessions.getSession(sessionToken);
     
     if (!session) {
-      return res.status(401).json({ error: "Unauthorized - Invalid token" });
+      return res.status(401).json({ error: "Unauthorized - Session not found" });
     }
 
     // Get the user's information from Clerk
