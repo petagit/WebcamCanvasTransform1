@@ -799,9 +799,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Direct checkout endpoint that doesn't use Clerk auth for troubleshooting
   app.post("/api/checkout/direct-session", async (req: Request, res: Response) => {
     console.log("Direct checkout endpoint called");
+    console.log("Request body:", JSON.stringify(req.body));
+    
+    // Debug Stripe API key (safe to log partial key for debugging)
+    const stripeKey = process.env.STRIPE_SECRET_KEY || '';
+    console.log("Using Stripe key type:", 
+      stripeKey.startsWith('sk_live_') ? 'LIVE' : 
+      stripeKey.startsWith('sk_test_') ? 'TEST' : 
+      'INVALID/MISSING');
     
     if (!stripe) {
       console.error("Stripe is not properly configured. STRIPE_SECRET_KEY may be missing or invalid.");
+      console.error("Key prefix:", stripeKey.substring(0, 8));
       return res.status(500).json({ 
         error: "Payment system is not configured", 
         details: "The application is missing payment credentials. Please contact support."
