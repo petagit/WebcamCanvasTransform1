@@ -24,10 +24,24 @@ declare global {
   }
 }
 
-// Load stripe outside component render cycle
+// Load stripe outside component render cycle with robust error handling
+let stripePromise = null;
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
-console.log("Using Stripe public key:", stripeKey ? stripeKey.substring(0, 7) + '...' : 'undefined');
-const stripePromise = loadStripe(stripeKey);
+
+try {
+  // Validate Stripe key format before attempting to load Stripe
+  if (!stripeKey) {
+    console.error("Missing Stripe public key (VITE_STRIPE_PUBLIC_KEY). Payments will not work.");
+  } else if (!stripeKey.startsWith('pk_')) {
+    console.error("Invalid Stripe public key format. Key should start with 'pk_'.");
+    console.error("Actual key prefix:", stripeKey.substring(0, 4));
+  } else {
+    console.log("Initializing Stripe with public key:", stripeKey.substring(0, 8) + '...');
+    stripePromise = loadStripe(stripeKey);
+  }
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error);
+}
 
 // Credit package definitions
 const CREDIT_PACKAGES = [
@@ -145,70 +159,117 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
     setErrorMessage(null);
 
     try {
-      // Make sure Clerk is initialized
-      if (!window.Clerk || !window.Clerk.session) {
-        console.error("Clerk not initialized or user not logged in");
-        setErrorMessage("You must be logged in to purchase credits");
-        throw new Error("Authentication service unavailable");
+      console.log("Starting checkout process for package:", packageId);
+      console.log("Stripe public key:", stripeKey ? `${stripeKey.substring(0, 8)}...` : "missing");
+      
+      // Debug check for Stripe initialization
+      if (!stripePromise) {
+        console.error("Stripe not initialized. Missing public key or initialization failed.");
+        setErrorMessage("Payment system is not properly configured. Please contact support.");
+        throw new Error("Stripe not initialized");
       }
       
-      // Check if user is logged in
-      const isLoggedIn = await window.Clerk.session.getToken()
-        .then(token => !!token)
-        .catch(() => false);
-        
-      if (!isLoggedIn) {
-        console.error("User not logged in");
-        setErrorMessage("Please log in to continue");
-        throw new Error("Not authenticated");
+      // Check for Clerk authentication (but don't fail if not available)
+      let userEmail = null;
+      let authToken = null;
+      
+      if (window.Clerk && window.Clerk.session) {
+        try {
+          authToken = await window.Clerk.session.getToken();
+          console.log("Auth token available:", !!authToken);
+          
+          // Try to get user email from session if available
+          if (window.Clerk.user && 'emailAddresses' in window.Clerk.user) {
+            const emails = (window.Clerk.user as any).emailAddresses;
+            if (emails && emails.length > 0) {
+              userEmail = emails[0].emailAddress;
+            }
+          }
+        } catch (authError) {
+          console.log("Non-critical auth error:", authError);
+          // Continue with checkout even if auth fails
+        }
+      } else {
+        console.log("Clerk not available, proceeding with anonymous checkout");
       }
       
-      // Get a fresh token before making the request
-      const token = await window.Clerk.session.getToken();
-      console.log("Auth token available:", !!token);
+      // Use the direct checkout endpoint (works with or without auth)
+      console.log("Using direct checkout endpoint");
       
-      if (!token) {
-        setErrorMessage("Authentication failed. Please try logging out and back in.");
-        throw new Error("No authentication token available");
-      }
+      // Add detailed debugging of request
+      const requestBody = { 
+        packageId,
+        email: userEmail || 'guest@example.com' 
+      };
+      console.log("Checkout request payload:", JSON.stringify(requestBody));
       
-      // Try the direct checkout endpoint first (no auth required)
-      console.log("Using direct checkout endpoint to bypass authentication issues");
       const response = await fetch('/api/checkout/direct-session', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
         },
-        body: JSON.stringify({ 
-          packageId,
-          email: 'test@example.com' // Use a placeholder email for the direct checkout endpoint
-        })
+        body: JSON.stringify(requestBody)
       });
       
+      console.log("Checkout response status:", response.status);
+      
+      // Handle error responses with detailed information
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: `HTTP error ${response.status}` };
+        }
+        
         const errorMsg = errorData.error || 'Failed to create checkout session';
+        const errorDetails = errorData.details || '';
+        
         console.error('Checkout error:', errorMsg);
-        setErrorMessage(errorMsg);
+        console.error('Details:', errorDetails);
+        
+        // Enhance error message with more helpful information
+        let userFriendlyError = errorMsg;
+        if (errorMsg.includes("API Key")) {
+          userFriendlyError = "Payment system configuration error. Please contact support.";
+        }
+        
+        setErrorMessage(`${userFriendlyError} ${errorDetails ? `(${errorDetails})` : ''}`);
         throw new Error(errorMsg);
       }
 
-      // Get the session data
-      const { sessionId } = await response.json();
+      // Successfully received session data
+      console.log("Checkout session created successfully");
+      const sessionData = await response.json();
+      const { sessionId } = sessionData;
+      
+      console.log("Session ID received:", sessionId ? "Yes" : "No");
+      
+      if (!sessionId) {
+        setErrorMessage("Invalid response from server (missing session ID)");
+        throw new Error("Invalid session data");
+      }
       
       // Initialize Stripe and redirect to Checkout
+      console.log("Initializing Stripe checkout redirect");
       const stripe = await stripePromise;
+      
       if (!stripe) {
+        console.error("Failed to initialize Stripe client");
+        setErrorMessage("Failed to initialize payment system. Please refresh and try again.");
         throw new Error('Failed to load Stripe');
       }
       
       // Redirect to Stripe Checkout
+      console.log("Redirecting to Stripe Checkout");
       const { error } = await stripe.redirectToCheckout({
         sessionId
       });
       
       if (error) {
         console.error('Stripe redirect error:', error);
+        setErrorMessage(`Payment error: ${error.message || 'Failed to redirect to checkout'}`);
         throw new Error(error.message || 'Failed to redirect to checkout');
       }
       
