@@ -975,41 +975,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
 
-    const sig = req.headers['stripe-signature'] as string;
-    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return res.status(400).json({ error: "Missing signature" });
-    }
-
     let event;
 
     try {
+      const sig = req.headers['stripe-signature'];
+      if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+        throw new Error("Missing webhook signature");
+      }
+
+      // Raw body verification for webhook security
+      const rawBody = req.body;
       event = stripe.webhooks.constructEvent(
-        req.body,
+        rawBody,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET
+        process.env.STRIPE_WEBHOOK_SECRET,
+        { tolerance: 300 } // 5 minute tolerance for timestamp verification
       );
-    } catch (err) {
-      console.error("Webhook error:", err);
-      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    } catch (err: any) {
+      console.error("Webhook signature verification failed:", err.message);
+      return res.status(400).json({ 
+        error: "Webhook signature verification failed",
+        code: 'webhook_signature_verification_failed'
+      });
     }
 
-    // Handle the event
-    switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        const subscription = event.data.object;
-        await handleSubscriptionUpdated(subscription);
-        break;
-      case 'customer.subscription.deleted':
-        const canceledSubscription = event.data.object;
-        await handleSubscriptionCanceled(canceledSubscription);
-        break;
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        await handlePaymentIntentSucceeded(paymentIntent);
-        break;
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+    // Handle the event with improved type safety
+    try {
+      switch (event.type) {
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+        case 'customer.subscription.resumed':
+          const subscription = event.data.object;
+          await handleSubscriptionUpdated(subscription);
+          break;
+          
+        case 'customer.subscription.deleted':
+        case 'customer.subscription.paused':
+          const canceledSubscription = event.data.object;
+          await handleSubscriptionCanceled(canceledSubscription);
+          break;
+          
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          await handlePaymentIntentSucceeded(paymentIntent);
+          break;
+          
+        case 'payment_intent.payment_failed':
+          const failedPayment = event.data.object;
+          console.error('Payment failed:', failedPayment.id);
+          // Could add notification logic here
+          break;
+          
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (err) {
+      console.error('Error processing webhook:', err);
+      res.status(500).json({ 
+        error: 'Webhook processing failed',
+        code: 'webhook_processing_failed'
+      });
     }
 
     res.json({ received: true });
