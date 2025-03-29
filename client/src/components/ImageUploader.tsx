@@ -90,13 +90,20 @@ export default function ImageUploader({
       
       if (!response.ok) {
         console.log("Credit consumption response not OK:", response.status);
-        const errorData = await response.json();
-        console.log("Credit consumption error:", errorData);
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.log("Credit consumption error:", errorData);
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+          errorData = { error: "Unknown error" };
+        }
         
         if (response.status === 402) { // Insufficient credits
+          console.log("Showing paywall due to insufficient credits");
           setIsProcessing(false);
           setShowPaywall(true);
-          return;
+          return; // Important: return early to prevent further processing
         }
         
         // For other errors, log but continue (the server should handle anonymous users)
@@ -106,8 +113,10 @@ export default function ImageUploader({
       }
     } catch (error) {
       console.error('Failed to consume credits:', error);
-      // Continue with processing even if credit consumption fails
-      // The server will handle anonymous users appropriately
+      // DO NOT continue if we encountered a credit consumption error
+      setIsProcessing(false);
+      setError("Failed to process image due to credit validation error");
+      return; // Important: return early to prevent further processing
     }
 
     setIsProcessing(true);
