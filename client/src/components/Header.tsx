@@ -34,14 +34,16 @@ export default function Header({ onHelpClick }: HeaderProps) {
             <HelpCircle className="h-5 w-5" />
           </button>
 
+          {/* Always show credit display */}
+          <div className="flex-shrink-0">
+            <CreditDisplay />
+          </div>
+            
           {user ? (
             <div className="flex items-center gap-4">
               <span className="text-foreground hidden md:inline text-sm truncate max-w-[150px]">
                 {user.username}
               </span>
-              <div className="flex-shrink-0">
-                <CreditDisplay />
-              </div>
               <Button 
                 variant="ghost" 
                 size="sm"

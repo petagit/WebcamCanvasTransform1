@@ -24,14 +24,25 @@ export default function CreditDisplay({ onChange }: CreditDisplayProps) {
   } = useQuery({
     queryKey: ['/api/credits'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/credits');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch credits');
+      try {
+        console.log("Fetching credits");
+        const response = await apiRequest('GET', '/api/credits');
+        if (!response.ok) {
+          console.warn("Failed to fetch credits:", response.status);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch credits');
+        }
+        const data = await response.json();
+        console.log("Credits data received:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in credit fetch:", error);
+        throw error;
       }
-      return response.json();
     },
     refetchInterval: 10000,  // Refetch every 10 seconds to keep credits updated
+    // Always show data even when stale in case of errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
   useEffect(() => {
@@ -64,9 +75,15 @@ export default function CreditDisplay({ onChange }: CreditDisplayProps) {
       return <Loader2 className="h-4 w-4 animate-spin mr-1" />;
     }
     
+    // Check if we're in debug mode (free credits for non-authenticated users)
+    const isDebugMode = creditsData?.debug === true;
+    
     return (
       <span className="text-sm font-medium text-zinc-100">
         {formatCredits(creditsData?.credits || 0)} credits
+        {isDebugMode && (
+          <span className="text-xs ml-1 opacity-70">(free)</span>
+        )}
       </span>
     );
   };
