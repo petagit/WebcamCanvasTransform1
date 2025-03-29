@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simulated debug credits for anonymous users
-  let simulatedDebugCredits = 100;
+  let simulatedDebugCredits = 30;
   
   // Credit system API routes - with debug bypass option
   app.get("/api/credits", async (req: Request, res: Response) => {
