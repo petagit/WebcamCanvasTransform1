@@ -17,7 +17,7 @@ export default function Header({ onHelpClick }: HeaderProps) {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.jpeg" alt="Filtercamera Logo" className="h-10 w-10 rounded-md" />
+            <img src="/logo.jpeg" alt="Filtercamera Logo" className="h-16 w-16 rounded-md" />
             <div className="flex flex-col items-start">
               <h1 className="text-3xl font-serif text-zinc-100">Filtercamera.app</h1>
               <p className="text-xs text-zinc-400 -mt-1">the most stylish camera tool</p>
