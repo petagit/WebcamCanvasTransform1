@@ -84,6 +84,7 @@ export default function ImageUploader({
     try {
       setIsProcessing(true);
       setProgress(5); // Start progress
+      setError(null); // Clear any previous errors
       
       console.log("Attempting to consume credits for image filter");
       const response = await apiRequest('POST', '/api/credits/consume', { amount: 30 });
@@ -113,9 +114,18 @@ export default function ImageUploader({
       }
     } catch (error) {
       console.error('Failed to consume credits:', error);
-      // DO NOT continue if we encountered a credit consumption error
+      
+      // Check if the error is a Response object (from fetch)
+      if (error instanceof Response && error.status === 402) {
+        console.log("Showing paywall due to insufficient credits (from catch)");
+        setIsProcessing(false);
+        setShowPaywall(true);
+        return; // Important: return early to prevent further processing
+      }
+      
+      // For other errors, show the error message but don't continue processing
       setIsProcessing(false);
-      setError("Failed to process image due to credit validation error");
+      setError("Failed to process image. Please try again.");
       return; // Important: return early to prevent further processing
     }
 

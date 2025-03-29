@@ -29,6 +29,13 @@ export default function PaywallModal({
   const [showPurchasePanel, setShowPurchasePanel] = React.useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = React.useState(false);
   const { user } = useAuth();
+  
+  // Log when the modal opens for debugging
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log(`PaywallModal opened with reason: ${reason}`);
+    }
+  }, [isOpen, reason]);
 
   const handlePurchaseClick = () => {
     if (!user) {
