@@ -111,6 +111,9 @@ export default function PaywallModal({
         ) : (
           <>
             <DialogHeader>
+              <div className="flex justify-center mb-3">
+                <img src="/logo.jpeg" alt="Filtercamera Logo" className="h-14 w-14 rounded-md" />
+              </div>
               <DialogTitle className="text-xl font-serif text-primary text-center">
                 {reason === 'insufficient-credits' ? 'Insufficient Credits' : 'Free Trial Ended'}
               </DialogTitle>

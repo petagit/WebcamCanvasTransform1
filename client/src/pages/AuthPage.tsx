@@ -37,9 +37,13 @@ export default function AuthPage() {
           
           <Card className="w-full max-w-md mx-auto bg-gray-900 border-gray-800">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-center text-white mb-6">
-                Welcome to PixelCam
-              </h2>
+              <div className="flex flex-col items-center gap-2 mb-6">
+                <img src="/logo.jpeg" alt="Filtercamera Logo" className="h-16 w-16 rounded-md mb-1" />
+                <h2 className="text-2xl font-serif text-white">
+                  Filtercamera.app
+                </h2>
+                <p className="text-sm text-gray-400">the most stylish camera tool</p>
+              </div>
               
               <Tabs 
                 value={activeTab} 
@@ -103,15 +107,20 @@ export default function AuthPage() {
           <div className="flex items-center justify-center rounded-full bg-primary/10 p-6 mb-8">
             <Camera className="h-16 w-16 text-primary" />
           </div>
-          <h2 className="text-4xl font-bold text-white mb-6">Transform Your Photos</h2>
+          <h2 className="text-4xl font-serif text-white mb-6">Transform Your Media</h2>
           <p className="text-xl text-gray-300 mb-8">
-            Apply amazing dot matrix and halftone effects to your webcam stream.
-            Save and share your creative captures.
+            Apply stunning halftone and dot matrix effects to your webcam stream.
+            Choose from multiple dot shapes including circles, squares, and crosses.
           </p>
-          <div className="flex items-center gap-4 p-4 bg-primary/20 rounded-lg">
-            <Zap className="h-8 w-8 text-primary" />
-            <p className="text-gray-200">
-              Premium subscribers get unlimited video streaming and priority support!
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4 p-4 bg-primary/20 rounded-lg">
+              <Zap className="h-8 w-8 text-primary" />
+              <p className="text-gray-200">
+                Purchase credits to unlock unlimited webcam usage and image processing
+              </p>
+            </div>
+            <p className="text-sm text-gray-400 mt-2">
+              Each processed image costs 30 credits. Webcam previews are free for 10 seconds.
             </p>
           </div>
         </div>
