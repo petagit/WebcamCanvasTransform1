@@ -79,28 +79,35 @@ export default function ImageUploader({
       return;
     }
 
-    // First, consume 2 credits for image processing
-    if (user) {
-      try {
-        setIsProcessing(true);
-        setProgress(5); // Start progress
+    // Always try to consume credits, even for anonymous users
+    // The server will handle anonymous users in debug mode
+    try {
+      setIsProcessing(true);
+      setProgress(5); // Start progress
+      
+      console.log("Attempting to consume credits for image filter");
+      const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+      
+      if (!response.ok) {
+        console.log("Credit consumption response not OK:", response.status);
+        const errorData = await response.json();
+        console.log("Credit consumption error:", errorData);
         
-        const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (response.status === 402) { // Insufficient credits
           setIsProcessing(false);
-          
-          if (response.status === 402) { // Insufficient credits
-            setShowPaywall(true);
-            return;
-          }
-          throw new Error(errorData.error || 'Failed to consume credits');
+          setShowPaywall(true);
+          return;
         }
-      } catch (error) {
-        console.error('Failed to consume credits:', error);
-        // Continue with processing even if credit consumption fails
-        // The server will handle authenticated users appropriately
+        
+        // For other errors, log but continue (the server should handle anonymous users)
+        console.warn(errorData.error || 'Non-critical credit consumption error');
+      } else {
+        console.log("Credit consumption successful");
       }
+    } catch (error) {
+      console.error('Failed to consume credits:', error);
+      // Continue with processing even if credit consumption fails
+      // The server will handle anonymous users appropriately
     }
 
     setIsProcessing(true);

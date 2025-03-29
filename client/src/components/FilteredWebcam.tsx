@@ -120,23 +120,31 @@ export default function FilteredWebcam({
     if (!canvasRef.current || !videoRef.current || !isActive) return;
     
     try {
-      // First, consume 2 credits for image processing
-      if (user) {
-        try {
-          const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
-          if (!response.ok) {
-            const errorData = await response.json();
-            if (response.status === 402) { // Insufficient credits
-              setShowPaywall(true);
-              return;
-            }
-            throw new Error(errorData.error || 'Failed to consume credits');
+      // Always try to consume credits, even for anonymous users
+      // The server will handle anonymous users in debug mode
+      try {
+        console.log("Attempting to consume credits for image capture");
+        const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+        
+        if (!response.ok) {
+          console.log("Credit consumption response not OK:", response.status);
+          const errorData = await response.json();
+          console.log("Credit consumption error:", errorData);
+          
+          if (response.status === 402) { // Insufficient credits
+            setShowPaywall(true);
+            return;
           }
-        } catch (error) {
-          console.error('Failed to consume credits:', error);
-          // Continue with capture even if credit consumption fails
-          // The server will handle authenticated users appropriately
+          
+          // For other errors, log but continue (the server should handle anonymous users)
+          console.warn(errorData.error || 'Non-critical credit consumption error');
+        } else {
+          console.log("Credit consumption successful");
         }
+      } catch (error) {
+        console.error('Failed to consume credits:', error);
+        // Continue with capture even if credit consumption fails
+        // The server will handle anonymous users appropriately
       }
       
       // Get canvas context
