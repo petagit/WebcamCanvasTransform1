@@ -19,6 +19,9 @@ dotenv.config();
 // Initialize Stripe with more robust error checking
 let stripe: Stripe | null = null;
 
+// Global variable to track debug credits for non-authenticated users
+let simulatedDebugCredits = 100;
+
 try {
   // Check if the key exists and has proper format
   const secretKey = process.env.STRIPE_SECRET_KEY || '';
@@ -662,6 +665,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simulated debug credits for anonymous users
+  let simulatedDebugCredits = 100;
+  
   // Credit system API routes - with debug bypass option
   app.get("/api/credits", async (req: Request, res: Response) => {
     console.log("Credits endpoint called - debug mode enabled");
@@ -669,7 +675,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Debug mode for testing without authentication
       const DEBUG_MODE = true; // Set to false in production
-      const DEBUG_CREDITS = 100; // Mock credits for testing
       
       console.log("Auth headers:", req.headers.authorization ? "Present" : "Missing");
       
@@ -692,11 +697,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // If authentication failed or user not found, return debug credits
-          console.log(`No authenticated user found, returning debug credits: ${DEBUG_CREDITS}`);
-          return res.status(200).json({ credits: DEBUG_CREDITS, debug: true });
+          console.log(`No authenticated user found, returning debug credits: ${simulatedDebugCredits}`);
+          return res.status(200).json({ credits: simulatedDebugCredits, debug: true });
         } catch (e) {
           console.error("Error in auth flow:", e);
-          return res.status(200).json({ credits: DEBUG_CREDITS, debug: true });
+          return res.status(200).json({ credits: simulatedDebugCredits, debug: true });
         }
       } else {
         // Normal production flow with authentication required
@@ -731,7 +736,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Debug mode for testing
       const DEBUG_MODE = true; // Set to false in production
-      const DEBUG_CREDITS = 100; // Mock credits for testing
 
       console.log("Credit consumption endpoint called");
       console.log("Auth headers:", req.headers.authorization ? "Present" : "Missing");
@@ -742,9 +746,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If debug mode is enabled or user is not authenticated, return success
       if (DEBUG_MODE || !clerkUser) {
         console.log("Debug mode or non-authenticated user - bypassing credit check");
+        
+        // Simulate credit consumption for anonymous users
+        simulatedDebugCredits = Math.max(0, simulatedDebugCredits - amount);
+        console.log(`Simulated debug credits reduced by ${amount} to ${simulatedDebugCredits}`);
+        
         return res.status(200).json({ 
           success: true, 
-          credits: DEBUG_CREDITS - amount,
+          credits: simulatedDebugCredits,
           debug: true
         });
       }
@@ -882,6 +891,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Redirect to the new endpoint
     req.url = '/api/checkout/create-session';
     app._router.handle(req, res);
+  });
+  
+  // Endpoint to add debug credits for non-authenticated users
+  app.post("/api/debug/add-credits", async (req: Request, res: Response) => {
+    try {
+      // Validate there's no authenticated user
+      const clerkUser = getClerkUser(req);
+      if (clerkUser) {
+        return res.status(400).json({ error: "This endpoint is only for anonymous users" });
+      }
+      
+      // Add credits to the simulated credits for testing
+      const { amount = 50 } = req.body;
+      simulatedDebugCredits += amount;
+      console.log(`Added ${amount} debug credits. New total: ${simulatedDebugCredits}`);
+      
+      return res.status(200).json({
+        success: true,
+        credits: simulatedDebugCredits,
+        debug: true
+      });
+    } catch (error) {
+      console.error("Error adding debug credits:", error);
+      return res.status(500).json({ error: "Failed to add credits" });
+    }
   });
   
   // Direct checkout endpoint that doesn't use Clerk auth for troubleshooting

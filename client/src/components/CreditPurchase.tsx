@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 // Extended Clerk type definition
@@ -55,33 +55,86 @@ const CREDIT_PACKAGES = [
   { id: 'premium', name: 'Premium', credits: 500, amount: 1999, formattedPrice: '$19.99' }
 ];
 
+// Function to add free credits for anonymous users
+async function addFreeCredits(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/debug/add-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 50 })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Added free credits:", data);
+      
+      // Invalidate credits cache to refresh the display
+      window.location.reload();
+      return true;
+    } else {
+      console.error("Error adding free credits:", response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error in free credits request:", error);
+    return false;
+  }
+}
+
 // Package selection component
-function PackageSelection({ onSelectPackage }: { onSelectPackage: (packageId: string) => void }) {
+function PackageSelection({ 
+  onSelectPackage, 
+  isAnonymousUser 
+}: { 
+  onSelectPackage: (packageId: string) => void,
+  isAnonymousUser: boolean 
+}) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {CREDIT_PACKAGES.map(pkg => (
-        <Card key={pkg.id} className="flex flex-col border border-border/20 bg-transparent rounded-sm">
-          <CardHeader>
-            <CardTitle className="font-serif text-primary text-lg">{pkg.name}</CardTitle>
-            <CardDescription className="text-foreground/70">{pkg.credits} Credits</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-2xl font-serif text-primary">{pkg.formattedPrice}</p>
-            <p className="text-xs text-foreground/60">
-              {(pkg.amount / pkg.credits).toFixed(2)} cents per credit
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={() => onSelectPackage(pkg.id)} 
-              className="w-full bg-primary/20 hover:bg-primary/30 text-primary"
-              variant="default"
-            >
-              Select
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
+    <div className="grid grid-cols-1 gap-4">
+      {isAnonymousUser && (
+        <div className="p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-md mb-2">
+          <h3 className="text-lg font-medium flex items-center text-yellow-400">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            Demo Mode
+          </h3>
+          <p className="mt-2 text-sm text-foreground/80">
+            You're not logged in. Click the button below to add free credits without payment for testing.
+          </p>
+          <Button 
+            onClick={addFreeCredits}
+            className="mt-4 bg-yellow-500/80 hover:bg-yellow-500 text-black"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Add 50 Free Credits
+          </Button>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {CREDIT_PACKAGES.map(pkg => (
+          <Card key={pkg.id} className="flex flex-col border border-border/20 bg-transparent rounded-sm">
+            <CardHeader>
+              <CardTitle className="font-serif text-primary text-lg">{pkg.name}</CardTitle>
+              <CardDescription className="text-foreground/70">{pkg.credits} Credits</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-2xl font-serif text-primary">{pkg.formattedPrice}</p>
+              <p className="text-xs text-foreground/60">
+                {(pkg.amount / pkg.credits).toFixed(2)} cents per credit
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => onSelectPackage(pkg.id)} 
+                className="w-full bg-primary/20 hover:bg-primary/30 text-primary"
+                variant="default"
+              >
+                Select
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -91,6 +144,7 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
   const { toast } = useToast();
   
   // Debug auth status on component mount
@@ -114,6 +168,7 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
           // Check if user exists and has ID
           if (clerk.user && 'id' in clerk.user) {
             isSignedIn = !!clerk.user.id;
+            setIsSignedIn(isSignedIn);
             userId = clerk.user.id || "No ID";
           }
           
@@ -324,7 +379,10 @@ export default function CreditPurchase({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <>
-          <PackageSelection onSelectPackage={handleSelectPackage} />
+          <PackageSelection 
+            onSelectPackage={handleSelectPackage} 
+            isAnonymousUser={!isSignedIn} 
+          />
           <div className="mt-8 text-center">
             <Button 
               variant="outline" 
