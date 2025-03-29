@@ -116,10 +116,29 @@ export default function FilteredWebcam({
   };
 
   // Capture current frame
-  const captureFrame = () => {
+  const captureFrame = async () => {
     if (!canvasRef.current || !videoRef.current || !isActive) return;
     
     try {
+      // First, consume 2 credits for image processing
+      if (user) {
+        try {
+          const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+          if (!response.ok) {
+            const errorData = await response.json();
+            if (response.status === 402) { // Insufficient credits
+              setShowPaywall(true);
+              return;
+            }
+            throw new Error(errorData.error || 'Failed to consume credits');
+          }
+        } catch (error) {
+          console.error('Failed to consume credits:', error);
+          // Continue with capture even if credit consumption fails
+          // The server will handle authenticated users appropriately
+        }
+      }
+      
       // Get canvas context
       const canvas = canvasRef.current;
       

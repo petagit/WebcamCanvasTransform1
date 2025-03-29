@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Upload, Image as ImageIcon, Download, X } from 'lucide-react';
 import type { FilterSettings } from '@/pages/Home';
+import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/lib/clerk-provider';
+import PaywallModal from './PaywallModal';
 
 interface ImageUploaderProps {
   onImageFiltered: (imageUrl: string) => void;
@@ -18,8 +21,11 @@ export default function ImageUploader({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [showPaywall, setShowPaywall] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const { user } = useAuth();
 
   // Handle file selection
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,10 +73,34 @@ export default function ImageUploader({
   };
 
   // Apply filter to the loaded image
-  const applyFilter = () => {
+  const applyFilter = async () => {
     if (!originalImage || !canvasRef.current) {
       setError('No image loaded or canvas not available');
       return;
+    }
+
+    // First, consume 2 credits for image processing
+    if (user) {
+      try {
+        setIsProcessing(true);
+        setProgress(5); // Start progress
+        
+        const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+        if (!response.ok) {
+          const errorData = await response.json();
+          setIsProcessing(false);
+          
+          if (response.status === 402) { // Insufficient credits
+            setShowPaywall(true);
+            return;
+          }
+          throw new Error(errorData.error || 'Failed to consume credits');
+        }
+      } catch (error) {
+        console.error('Failed to consume credits:', error);
+        // Continue with processing even if credit consumption fails
+        // The server will handle authenticated users appropriately
+      }
     }
 
     setIsProcessing(true);
@@ -363,6 +393,24 @@ export default function ImageUploader({
           </>
         )}
       </div>
+      
+      {/* Paywall Modal */}
+      <PaywallModal 
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchaseCredits={async () => {
+          // Refresh credits after purchase
+          try {
+            const response = await apiRequest('GET', '/api/credits');
+            if (response.ok) {
+              // Hide paywall on successful credit purchase
+              setShowPaywall(false);
+            }
+          } catch (error) {
+            console.error('Failed to refresh credits after purchase:', error);
+          }
+        }}
+      />
     </div>
   );
 }
