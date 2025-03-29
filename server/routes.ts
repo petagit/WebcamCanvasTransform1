@@ -743,11 +743,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to get the authenticated user
       const clerkUser = getClerkUser(req);
       
-      // If debug mode is enabled or user is not authenticated, return success
+      // If debug mode is enabled or user is not authenticated
       if (DEBUG_MODE || !clerkUser) {
-        console.log("Debug mode or non-authenticated user - bypassing credit check");
+        console.log("Debug mode or non-authenticated user");
         
-        // Simulate credit consumption for anonymous users
+        // Check if they have enough credits
+        if (simulatedDebugCredits < amount) {
+          console.log(`Insufficient debug credits: ${simulatedDebugCredits} < ${amount}`);
+          return res.status(402).json({ 
+            error: "Insufficient credits", 
+            credits: simulatedDebugCredits,
+            required: amount,
+            debug: true
+          });
+        }
+        
+        // If they have enough credits, simulate consumption
         simulatedDebugCredits = Math.max(0, simulatedDebugCredits - amount);
         console.log(`Simulated debug credits reduced by ${amount} to ${simulatedDebugCredits}`);
         
