@@ -732,7 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Consume credits
   app.post("/api/credits/consume", async (req: Request, res: Response) => {
     try {
-      const { amount = 2 } = req.body; // Default to 2 credits for image processing
+      const { amount = 30 } = req.body; // Default to 30 credits for image processing
       
       // Debug mode for testing
       const DEBUG_MODE = true; // Set to false in production

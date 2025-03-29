@@ -86,7 +86,7 @@ export default function ImageUploader({
       setProgress(5); // Start progress
       
       console.log("Attempting to consume credits for image filter");
-      const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+      const response = await apiRequest('POST', '/api/credits/consume', { amount: 30 });
       
       if (!response.ok) {
         console.log("Credit consumption response not OK:", response.status);

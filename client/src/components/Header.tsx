@@ -16,8 +16,9 @@ export default function Header({ onHelpClick }: HeaderProps) {
     <header className="bg-background border-b border-border/10">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Link href="/" className="flex items-center space-x-2">
-            <h1 className="text-3xl font-serif text-zinc-100">PixelCam</h1>
+          <Link href="/" className="flex flex-col items-start">
+            <h1 className="text-3xl font-serif text-zinc-100">Filtercamera.app</h1>
+            <p className="text-xs text-zinc-400 -mt-1">the most stylish camera tool</p>
           </Link>
         </div>
         <div className="flex items-center space-x-4">
