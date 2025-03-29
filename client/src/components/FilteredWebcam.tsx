@@ -124,7 +124,7 @@ export default function FilteredWebcam({
       // The server will handle anonymous users in debug mode
       try {
         console.log("Attempting to consume credits for image capture");
-        const response = await apiRequest('POST', '/api/credits/consume', { amount: 2 });
+        const response = await apiRequest('POST', '/api/credits/consume', { amount: 30 });
         
         if (!response.ok) {
           console.log("Credit consumption response not OK:", response.status);
@@ -406,7 +406,7 @@ export default function FilteredWebcam({
           <div className="absolute inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center">
             <div className="text-white text-center p-6 max-w-md">
               <h3 className="text-xl font-bold mb-2">Free Trial Ended</h3>
-              <p className="mb-4">Purchase credits to continue using all PixelCam features.</p>
+              <p className="mb-4">Purchase credits to continue using all Filtercamera features.</p>
               <Button 
                 onClick={() => setShowPaywall(true)}
                 className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500"
@@ -455,6 +455,7 @@ export default function FilteredWebcam({
       <PaywallModal 
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
+        reason={hasTrialEnded ? "trial-ended" : "insufficient-credits"}
         onPurchaseCredits={handlePurchaseCredits}
       />
     </div>

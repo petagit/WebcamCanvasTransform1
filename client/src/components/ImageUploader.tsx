@@ -405,6 +405,7 @@ export default function ImageUploader({
       <PaywallModal 
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
+        reason="insufficient-credits"
         onPurchaseCredits={async () => {
           // Refresh credits after purchase
           try {

@@ -17,12 +17,14 @@ interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPurchaseCredits: () => void;
+  reason?: 'trial-ended' | 'insufficient-credits'; // Why the paywall is shown
 }
 
 export default function PaywallModal({
   isOpen,
   onClose,
   onPurchaseCredits,
+  reason = 'trial-ended',
 }: PaywallModalProps) {
   const [showPurchasePanel, setShowPurchasePanel] = React.useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = React.useState(false);
@@ -59,7 +61,7 @@ export default function PaywallModal({
             </DialogHeader>
 
             <div className="py-8 text-center">
-              <p className="mb-6 text-foreground/80 text-sm">Login to your account to purchase credits and unlock all PixelCam features.</p>
+              <p className="mb-6 text-foreground/80 text-sm">Login to your account to purchase credits and unlock all Filtercamera features.</p>
               
               <div className="flex flex-col gap-4 items-center justify-center">
                 <Link 
@@ -94,7 +96,7 @@ export default function PaywallModal({
             <DialogHeader>
               <DialogTitle className="text-xl font-serif text-primary text-center">Purchase Credits</DialogTitle>
               <DialogDescription className="text-center pt-2 text-foreground/70">
-                Choose a credit package to continue using PixelCam features.
+                Choose a credit package to continue using Filtercamera features.
               </DialogDescription>
             </DialogHeader>
             <CreditPurchase onClose={handlePurchaseComplete} />
@@ -103,10 +105,12 @@ export default function PaywallModal({
           <>
             <DialogHeader>
               <DialogTitle className="text-xl font-serif text-primary text-center">
-                Free Trial Ended
+                {reason === 'insufficient-credits' ? 'Insufficient Credits' : 'Free Trial Ended'}
               </DialogTitle>
               <DialogDescription className="text-center pt-2 text-foreground/70">
-                Your free 10-second preview has ended. Purchase credits to continue using all PixelCam features.
+                {reason === 'insufficient-credits' 
+                  ? 'You don\'t have enough credits to complete this action. Each processed image costs 30 credits.' 
+                  : 'Your free 10-second preview has ended. Purchase credits to continue using all Filtercamera features.'}
               </DialogDescription>
             </DialogHeader>
 
@@ -114,7 +118,7 @@ export default function PaywallModal({
               <div className="border border-border/20 p-4 rounded-sm">
                 <h3 className="font-serif text-primary flex items-center gap-2 text-sm">
                   <CheckCircle className="h-4 w-4 text-primary/80" />
-                  What you get with PixelCam Credits
+                  What you get with Filtercamera Credits
                 </h3>
                 <ul className="mt-2 space-y-2 pl-7">
                   <li className="list-disc text-xs text-foreground/80">Unlimited webcam usage</li>
@@ -130,7 +134,7 @@ export default function PaywallModal({
                   Premium Features
                 </h3>
                 <p className="text-xs mt-1 text-foreground/80">
-                  Each processed image costs 2 credits. Purchase credits in bundles for the best value.
+                  Each processed image costs 30 credits. Purchase credits in bundles for the best value.
                 </p>
               </div>
             </div>
